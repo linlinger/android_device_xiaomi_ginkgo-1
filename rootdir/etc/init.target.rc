@@ -68,6 +68,12 @@ on post-fs
 on early-boot
     write /dev/ipa 1
 
+on property:init.svc.vendor.hwcomposer-2-4=stopped
+    stop ppd
+
+on property:init.svc.vendor.hwcomposer-2-4=running
+    start ppd
+
 on late-fs
     wait_for_prop hwservicemanager.ready true
     exec_start wait_for_keymaster
@@ -391,15 +397,6 @@ service ppd /vendor/bin/mm-pp-dpps
     group system graphics
     socket pps stream 0660 system system
     disabled
-
-on property:init.svc.hwcomposer-2-1=stopped
-    stop ppd
-
-on property:init.svc.hwcomposer-2-1=running
-    start ppd
-
-on property:init.svc.hwcomposer-2-1=restarting
-    stop ppd
 
 #service nqs /system/bin/nqs
 #    class late_start
