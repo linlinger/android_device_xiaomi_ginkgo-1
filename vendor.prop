@@ -162,6 +162,8 @@ dalvik.vm.dex2oat-filter=speed-profile
 dalvik.vm.image-dex2oat-filter=speed-profile
 
 # Display
+debug.hwui.use_hint_manager=true
+debug.hwui.target_cpu_time_percent=30
 debug.egl.hw=0
 debug.mdpcomp.logs=0
 debug.sf.auto_latch_unsignaled=0
