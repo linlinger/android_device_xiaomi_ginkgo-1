@@ -252,3 +252,12 @@ ro.surface_flinger.use_color_management=1
 
 # Time
 persist.vendor.delta_time.enable=true
+
+# Zygote
+zygote.critical_window.minute=10
+
+# Power-saving props
+ro.vold.umsdirtyratio=20
+ro.ril.disable.power.collapse=0
+power.saving.mode=1
+pm.sleep_mode=1
