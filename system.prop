@@ -14,6 +14,10 @@ persist.vendor.btstack.a2dp_offload_cap=sbc-aptx-aptxtws-aptxhd-aac-ldac
 persist.vendor.btstack.absvolfeature=true
 persist.vendor.btstack.enable.splita2dp=false
 vendor.bluetooth.soc=cherokee
+# Camera
+persist.enable_depthsensor_workaround=true
+vendor.camera.aux.packagelist=org.codeaurora.snapcam,com.android.camera
+persist.vendor.camera.privapp.list=org.codeaurora.snapcam,com.android.camera
 
 # Charger
 ro.charger.enable_suspend=true
