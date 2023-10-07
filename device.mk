@@ -388,6 +388,8 @@ PRODUCT_PACKAGES += \
     android.hardware.secure_element@1.0.vendor \
     libavservices_minijail \
     libavservices_minijail.vendor \
+    libprotobuf-cpp-full-3.9.1-vendorcompat \
+    libprotobuf-cpp-lite-3.9.1-vendorcompat \
     librmnetctl
 
 
