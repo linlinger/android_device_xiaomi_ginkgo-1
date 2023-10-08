@@ -16,6 +16,9 @@
 
 DEVICE_PATH := device/xiaomi/ginkgo
 
+# Build bypass
+BUILD_BROKEN_CLANG_PROPERTY := true
+
 # Architecture
 TARGET_ARCH := arm64
 TARGET_ARCH_VARIANT := armv8-a
