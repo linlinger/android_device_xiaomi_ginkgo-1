@@ -143,14 +143,9 @@ PRODUCT_PACKAGES += \
     android.hardware.drm@1.3.vendor
 
 # Dynamic Partitions
-include $(CLEAR_VARS)
-LOCAL_MODULE       := fstab.qcom_ramdisk
-LOCAL_MODULE_STEM  := fstab.qcom
-LOCAL_MODULE_TAGS  := optional
-LOCAL_MODULE_CLASS := ETC
-LOCAL_SRC_FILES    := etc/fstab.qcom
-LOCAL_MODULE_PATH  := $(TARGET_RAMDISK_OUT)
-include $(BUILD_PREBUILT)
+PRODUCT_BUILD_SUPER_PARTITION := true
+PRODUCT_USE_DYNAMIC_PARTITIONS := true
+PRODUCT_RETROFIT_DYNAMIC_PARTITIONS := true
 
 # Fingerprint
 PRODUCT_PACKAGES += \
@@ -343,6 +338,7 @@ PRODUCT_ODM_PROPERTIES += \
 # Ramdisk
 PRODUCT_PACKAGES += \
     fstab.qcom \
+    fstab.qcom_ramdisk \
     init.class_main.sh \
     init.ginkgo.rc \
     init.qcom.early_boot.sh \
