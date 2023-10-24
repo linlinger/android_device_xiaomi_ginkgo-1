@@ -182,7 +182,7 @@ TARGET_RELEASETOOLS_EXTENSIONS := $(DEVICE_PATH)
 ENABLE_VENDOR_RIL_SERVICE := true
 
 # Sepolicy - Common
-include device/qcom/sepolicy_vndr-legacy-um/SEPolicy.mk
+include device/qcom/sepolicy_vndr/SEPolicy.mk
 
 # Sepolicy - Ginkgo
 include device/xiaomi/ginkgo-sepolicy/ginkgo-sepolicy.mk
