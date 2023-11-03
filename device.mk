@@ -133,18 +133,22 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     android.hardware.bluetooth@1.0.vendor
 
+# Camera
+$(call inherit-product, vendor/miuicamera/config.mk)
+
 PRODUCT_PACKAGES += \
-    android.frameworks.displayservice@1.0 \
     android.frameworks.displayservice@1.0.vendor \
-    android.hardware.camera.device@3.4 \
-    android.hardware.camera.device@3.5 \
     android.hardware.camera.provider@2.4-impl \
     android.hardware.camera.provider@2.4-service \
-    android.hardware.camera.provider@2.5 \
-    vendor.qti.hardware.camera.device@1.0 \
+    android.hidl.memory.block@1.0.vendor \
     vendor.qti.hardware.camera.device@1.0.vendor \
-    libdng_sdk.vendor \
     libwatermark_shim
+
+PRODUCT_COPY_FILES += \
+    frameworks/native/data/etc/android.hardware.camera.flash-autofocus.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.camera.flash-autofocus.xml \
+    frameworks/native/data/etc/android.hardware.camera.front.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.camera.front.xml \
+    frameworks/native/data/etc/android.hardware.camera.full.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.camera.full.xml \
+    frameworks/native/data/etc/android.hardware.camera.raw.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.camera.raw.xml
 
 # Component overrides
 PRODUCT_COPY_FILES += \
