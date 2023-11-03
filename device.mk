@@ -322,7 +322,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_SOONG_NAMESPACES += \
     vendor/nxp/opensource/sn100x
 
-PRODUCT_PACKAGES += \
+#PRODUCT_PACKAGES += \
     com.android.nfc_extras \
     com.nxp.nfc.nq \
     NQNfcNci \
