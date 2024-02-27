@@ -96,7 +96,7 @@ TARGET_INIT_VENDOR_LIB := //$(DEVICE_PATH):libinit_ginkgo
 TARGET_RECOVERY_DEVICE_MODULES := libinit_ginkgo
 
 # HWUI
-TARGET_USES_VULKAN := true
+USE_OPENGL_RENDERER := true
 HWUI_COMPILE_FOR_PERF := true
 
 # Kernel
