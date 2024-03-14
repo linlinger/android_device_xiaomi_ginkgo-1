@@ -95,6 +95,7 @@ PRODUCT_COPY_FILES += \
 
 # Camera
 $(call inherit-product-if-exists, vendor/miuicamera/config.mk)
+
 PRODUCT_PACKAGES += \
     android.frameworks.displayservice@1.0.vendor \
     android.frameworks.sensorservice@1.0.vendor \
