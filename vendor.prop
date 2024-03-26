@@ -159,6 +159,8 @@ ro.vendor.use_data_netmgrd=true
  Dalvik
 dalvik.vm.dex2oat64.enabled=true
 dalvik.vm.systemuicompilerfilter=speed
+dalvik.vm.dex2oat-filter=speed-profile
+dalvik.vm.image-dex2oat-filter=speed-profile
 
 # Display
 debug.hwui.renderer=skiagl
