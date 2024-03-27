@@ -2,6 +2,7 @@
 # Copyright (C) 2018-2019 The LineageOS Project
 # Copyright (C) 2020 Paranoid Android
 # Copyright (C) 2023 The LineageOS Project
+# Copyright (C) 2024 Pixel Experience
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -40,6 +41,10 @@ TRINKET := trinket
 AUDIO_FEATURE_ENABLED_COMPRESS_VOIP := false
 AUDIO_FEATURE_ENABLED_EXTENDED_COMPRESS_FORMAT := true
 TARGET_PROVIDES_AUDIO_EXTNS := true
+AUDIO_FEATURE_ENABLED_EXTN_FORMATS := true
+AUDIO_FEATURE_ENABLED_FM_POWER_OPT := true
+AUDIO_FEATURE_ENABLED_HDMI_SPK := true
+USE_CUSTOM_AUDIO_POLICY := 1
 
 # Assert
 TARGET_OTA_ASSERT_DEVICE := ginkgo,willow
