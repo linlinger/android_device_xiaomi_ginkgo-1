@@ -1,6 +1,7 @@
 #
 # Copyright (C) 2020 ArrowOS
 # Copyright (C) 2023 Project-Elixir
+# Copyright (C) 2024 Pixel Experience
 #
 # SPDX-License-Identifier: Apache-2.0
 #
