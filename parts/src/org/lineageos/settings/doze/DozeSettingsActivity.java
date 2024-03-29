@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2021 Paranoid Android
+ * Copyright (C) 2015-2016 The CyanogenMod Project
+ *               2017 The LineageOS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +15,22 @@
  * limitations under the License.
  */
 
-package org.lineageos.settings.display;
+package org.lineageos.settings.doze;
 
 import android.os.Bundle;
+
 import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity;
 
-public class LcdFeaturesPreferenceActivity extends CollapsingToolbarBaseActivity {
+public class DozeSettingsActivity extends CollapsingToolbarBaseActivity {
+
+    private static final String TAG_DOZE = "doze";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getFragmentManager().beginTransaction()
-                .replace(com.android.settingslib.collapsingtoolbar.R.id.content_frame, new LcdFeaturesPreferenceFragment())
-                .commit();
+
+        getFragmentManager().beginTransaction().replace(
+			    com.android.settingslib.collapsingtoolbar.R.id.content_frame,
+                new DozeSettingsFragment(), TAG_DOZE).commit();
     }
 }
