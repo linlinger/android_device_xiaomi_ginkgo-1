@@ -1,0 +1,939 @@
+From e7abd973300e94e37652e1817093c202a00eb8c2 Mon Sep 17 00:00:00 2001
+From: linlinger <32541118+linlinger@users.noreply.github.com>
+Date: Fri, 5 Apr 2024 03:33:45 +0800
+Subject: [PATCH] Add support for status bar lyric
+
+Change-Id: I9848533253080854379fc19b432aa0e0c077b8a5
+---
+ core/api/current.txt                          |   2 +
+ core/java/android/app/Instrumentation.java    |   8 +-
+ core/java/android/app/Notification.java       |   5 +
+ core/java/android/os/Vibrator.java            |   3 +
+ core/java/android/provider/Settings.java      |  12 +
+ .../internal/util/custom/MeizuPropsUtils.java |  85 +++++++
+ packages/SystemUI/res/layout/status_bar.xml   |   3 +
+ .../SystemUI/res/layout/status_bar_lyric.xml  |  55 +++++
+ packages/SystemUI/res/values/aosp_styles.xml  |   8 +
+ packages/SystemUI/res/values/dimens.xml       |   4 +
+ .../systemui/statusbar/StatusBarIconView.java |  10 +-
+ .../collection/NotifCollection.java           |   4 +
+ .../phone/HeadsUpAppearanceController.java    |  11 +
+ .../statusbar/phone/LyricViewController.java  | 221 ++++++++++++++++++
+ .../fragment/CollapsedStatusBarFragment.java  |  57 ++++-
+ .../android/systemui/util/LyricTextView.java  | 151 ++++++++++++
+ 16 files changed, 633 insertions(+), 6 deletions(-)
+ create mode 100644 core/java/com/android/internal/util/custom/MeizuPropsUtils.java
+ create mode 100644 packages/SystemUI/res/layout/status_bar_lyric.xml
+ create mode 100644 packages/SystemUI/res/values/aosp_styles.xml
+ create mode 100644 packages/SystemUI/src/com/android/systemui/statusbar/phone/LyricViewController.java
+ create mode 100644 packages/SystemUI/src/com/android/systemui/util/LyricTextView.java
+
+diff --git a/core/api/current.txt b/core/api/current.txt
+index 288ab479c0fb..2406d7466998 100644
+--- a/core/api/current.txt
++++ b/core/api/current.txt
+@@ -6296,6 +6296,8 @@ package android.app {
+     field public static final int FLAG_NO_CLEAR = 32; // 0x20
+     field public static final int FLAG_ONGOING_EVENT = 2; // 0x2
+     field public static final int FLAG_ONLY_ALERT_ONCE = 8; // 0x8
++    field public static final int FLAG_ALWAYS_SHOW_TICKER = 16777216; // 0x1000000
++    field public static final int FLAG_ONLY_UPDATE_TICKER = 33554432; // 0x2000000
+     field @Deprecated public static final int FLAG_SHOW_LIGHTS = 1; // 0x1
+     field public static final int FOREGROUND_SERVICE_DEFAULT = 0; // 0x0
+     field public static final int FOREGROUND_SERVICE_DEFERRED = 2; // 0x2
+diff --git a/core/java/android/app/Instrumentation.java b/core/java/android/app/Instrumentation.java
+index 52fd5d9d12ad..4059012a675d 100644
+--- a/core/java/android/app/Instrumentation.java
++++ b/core/java/android/app/Instrumentation.java
+@@ -42,6 +42,7 @@ import android.os.Process;
+ import android.os.RemoteException;
+ import android.os.ServiceManager;
+ import android.os.SystemClock;
++import android.os.SystemProperties;
+ import android.os.TestLooperManager;
+ import android.os.UserHandle;
+ import android.os.UserManager;
+@@ -68,7 +69,7 @@ import java.util.List;
+ import java.util.concurrent.TimeoutException;
+ 
+ import com.android.internal.util.custom.PixelPropsUtils;
+-
++import com.android.internal.util.custom.MeizuPropsUtils;
+ /**
+  * Base class for implementing application instrumentation code.  When running
+  * with instrumentation turned on, this class will be instantiated for you
+@@ -100,6 +101,8 @@ public class Instrumentation {
+ 
+     private static final boolean VERBOSE = Log.isLoggable(TAG, Log.VERBOSE);
+ 
++    private static final String DISGUISE_PROPS_FOR_MUSIC_APP = "persist.sys.disguise_props_for_music_app";
++
+     /**
+      * @hide
+      */
+@@ -1284,6 +1287,9 @@ public class Instrumentation {
+                 .instantiateApplication(cl, className);
+         app.attach(context);
+         PixelPropsUtils.setProps(context);
++        //if (SystemProperties.getBoolean(DISGUISE_PROPS_FOR_MUSIC_APP, false)) {
++            MeizuPropsUtils.setProps(packageName);
++        //}
+         return app;
+     }
+     
+diff --git a/core/java/android/app/Notification.java b/core/java/android/app/Notification.java
+index ced35549769a..f123685d6936 100644
+--- a/core/java/android/app/Notification.java
++++ b/core/java/android/app/Notification.java
+@@ -732,6 +732,11 @@ public class Notification implements Parcelable
+     @TestApi
+     public static final int FLAG_USER_INITIATED_JOB = 0x00008000;
+ 
++
++    public static final int FLAG_ALWAYS_SHOW_TICKER = 0x01000000;
++
++    public static final int FLAG_ONLY_UPDATE_TICKER = 0x02000000;
++
+     private static final List<Class<? extends Style>> PLATFORM_STYLE_CLASSES = Arrays.asList(
+             BigTextStyle.class, BigPictureStyle.class, InboxStyle.class, MediaStyle.class,
+             DecoratedCustomViewStyle.class, DecoratedMediaCustomViewStyle.class,
+diff --git a/core/java/android/os/Vibrator.java b/core/java/android/os/Vibrator.java
+index 4e852e333ec8..005da576b84b 100644
+--- a/core/java/android/os/Vibrator.java
++++ b/core/java/android/os/Vibrator.java
+@@ -660,6 +660,9 @@ public abstract class Vibrator {
+         int[] durations = new int[primitiveIds.length];
+         for (int i = 0; i < primitiveIds.length; i++) {
+             durations[i] = info.getPrimitiveDuration(primitiveIds[i]);
++            if (durations[i] == 0) {
++                durations[i] = 1;
++            }
+         }
+         return durations;
+     }
+diff --git a/core/java/android/provider/Settings.java b/core/java/android/provider/Settings.java
+index ebe5fd6484ec..34e5feb15558 100644
+--- a/core/java/android/provider/Settings.java
++++ b/core/java/android/provider/Settings.java
+@@ -6151,6 +6151,18 @@ public final class Settings {
+             PRIVATE_SETTINGS.add(HIGH_TOUCH_POLLING_RATE_ENABLE);
+         }
+ 
++        /**
++         * Show lyric in status bar when playing music
++         * <ul>
++         *    <li> 0 = disabled </li>
++         *    <li> 1 = enabled </li>
++         * </ul>
++         *
++         * @hide
++         */
++        @Readable
++        public static final String STATUS_BAR_SHOW_LYRIC = "status_bar_show_lyric";
++
+         /**
+          * These entries are considered common between the personal and the managed profile,
+          * since the managed profile doesn't get to change them.
+diff --git a/core/java/com/android/internal/util/custom/MeizuPropsUtils.java b/core/java/com/android/internal/util/custom/MeizuPropsUtils.java
+new file mode 100644
+index 000000000000..dba98a42129e
+--- /dev/null
++++ b/core/java/com/android/internal/util/custom/MeizuPropsUtils.java
+@@ -0,0 +1,85 @@
++/*
++ * Copyright (C) 2020 The Pixel Experience Project
++ *               2020 The exTHmUI Open Source Project
++ *               2022 Project Kaleidoscope
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ * http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package com.android.internal.util.custom;
++
++import android.os.Build;
++import android.util.Log;
++
++import java.util.Arrays;
++import java.lang.reflect.Field;
++import java.util.HashMap;
++import java.util.Map;
++
++public class MeizuPropsUtils {
++
++    private static final String TAG = MeizuPropsUtils.class.getSimpleName();
++    private static final boolean DEBUG = false;
++
++    private static final Map<String, Object> propsToChange;
++
++    private static final String[] packagesToChange = {
++        "com.hihonor.cloudmusic",
++        "com.netease.cloudmusic",
++        "com.tencent.qqmusic",
++        "com.kugou.android",
++        "com.kugou.android.lite",
++        "cmccwm.mobilemusic",
++        "cn.kuwo.player",
++        "com.meizu.media.music"
++    };
++
++    static {
++        propsToChange = new HashMap<>();
++        propsToChange.put("BRAND", "meizu");
++        propsToChange.put("MANUFACTURER", "Meizu");
++        propsToChange.put("DEVICE", "m1892");
++        propsToChange.put("DISPLAY","Flyme");
++        propsToChange.put("PRODUCT","meizu_16thPlus_CN");
++        propsToChange.put("MODEL", "meizu 16th Plus");
++    }
++
++    public static void setProps(String packageName) {
++        if (packageName == null){
++            return;
++        }
++        if (Arrays.asList(packagesToChange).contains(packageName)){
++            if (DEBUG){
++                Log.d(TAG, "Defining props for: " + packageName);
++            }
++            for (Map.Entry<String, Object> prop : propsToChange.entrySet()) {
++                String key = prop.getKey();
++                Object value = prop.getValue();
++                setPropValue(key, value);
++            }
++        }
++    }
++
++    private static void setPropValue(String key, Object value){
++        try {
++            if (DEBUG){
++                Log.d(TAG, "Defining prop " + key + " to " + value.toString());
++            }
++            Field field = Build.class.getDeclaredField(key);
++            field.setAccessible(true);
++            field.set(null, value);
++            field.setAccessible(false);
++        } catch (NoSuchFieldException | IllegalAccessException e) {
++            Log.e(TAG, "Failed to set prop " + key, e);
++        }
++    }
++}
+\ No newline at end of file
+diff --git a/packages/SystemUI/res/layout/status_bar.xml b/packages/SystemUI/res/layout/status_bar.xml
+index c5351b15b594..09902cc0a0c0 100644
+--- a/packages/SystemUI/res/layout/status_bar.xml
++++ b/packages/SystemUI/res/layout/status_bar.xml
+@@ -70,6 +70,9 @@
+                 android:layout_gravity="center_vertical|start"
+                 android:clipChildren="false">
+ 
++
++                <include layout="@layout/status_bar_lyric" />
++
+                 <include layout="@layout/heads_up_status_bar_layout" />
+ 
+                 <!-- The alpha of the start side is controlled by PhoneStatusBarTransitions, and the
+diff --git a/packages/SystemUI/res/layout/status_bar_lyric.xml b/packages/SystemUI/res/layout/status_bar_lyric.xml
+new file mode 100644
+index 000000000000..1b6bc7ba19bb
+--- /dev/null
++++ b/packages/SystemUI/res/layout/status_bar_lyric.xml
+@@ -0,0 +1,55 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++  - Copyright 2020 The exTHmUI Open Source Project
++  -           2022 Project Kaleidoscope
++  -
++  - Licensed under the Apache License, Version 2.0 (the "License");
++  - you may not use this file except in compliance with the License.
++  - You may obtain a copy of the License at
++  -
++  -     http://www.apache.org/licenses/LICENSE-2.0
++  -
++  - Unless required by applicable law or agreed to in writing, software
++  - distributed under the License is distributed on an "AS IS" BASIS,
++  - WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++  - See the License for the specific language governing permissions and
++  - limitations under the License.
++  -->
++<LinearLayout
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    android:id="@+id/lyric_container"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    android:gravity="center_vertical"
++    android:visibility="gone"
++    android:orientation="horizontal"
++    android:paddingEnd="@dimen/lyric_padding_end">
++
++    <ImageSwitcher android:id="@+id/lyric_icon"
++        android:layout_width="@dimen/status_bar_icon_size"
++        android:layout_height="@dimen/status_bar_icon_size"
++        android:layout_marginEnd="@dimen/lyric_icon_margin_end">
++        <ImageView
++            android:layout_width="@dimen/status_bar_icon_size"
++            android:layout_height="@dimen/status_bar_icon_size"
++            android:scaleType="centerInside" />
++        <ImageView
++            android:layout_width="@dimen/status_bar_icon_size"
++            android:layout_height="@dimen/status_bar_icon_size"
++            android:scaleType="centerInside" />
++    </ImageSwitcher>
++    <TextSwitcher android:id="@+id/lyric_text"
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content">
++        <com.android.systemui.util.LyricTextView
++            android:textAppearance="@style/TextApperance.StatusBar.Lyric"
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"
++            android:maxLines="1" />
++        <com.android.systemui.util.LyricTextView
++            android:textAppearance="@style/TextApperance.StatusBar.Lyric"
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"
++            android:maxLines="1" />
++    </TextSwitcher>
++</LinearLayout>
+\ No newline at end of file
+diff --git a/packages/SystemUI/res/values/aosp_styles.xml b/packages/SystemUI/res/values/aosp_styles.xml
+new file mode 100644
+index 000000000000..6f829370d915
+--- /dev/null
++++ b/packages/SystemUI/res/values/aosp_styles.xml
+@@ -0,0 +1,8 @@
++
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <style name="TextApperance.StatusBar.Lyric" parent="@*android:style/TextAppearance.StatusBar">
++        <item name="android:textSize">14sp</item>
++        <item name="android:fontFamily">@*android:string/config_bodyFontFamily</item>
++    </style>
++</resources>
+\ No newline at end of file
+diff --git a/packages/SystemUI/res/values/dimens.xml b/packages/SystemUI/res/values/dimens.xml
+index b4757b6601ba..92b9ac4ade40 100644
+--- a/packages/SystemUI/res/values/dimens.xml
++++ b/packages/SystemUI/res/values/dimens.xml
+@@ -1852,4 +1852,8 @@
+     <!-- Bouncer user switcher margins -->
+     <dimen name="bouncer_user_switcher_view_mode_user_switcher_bottom_margin">0dp</dimen>
+     <dimen name="bouncer_user_switcher_view_mode_view_flipper_bottom_margin">0dp</dimen>
++
++    <!-- Lyric -->
++    <dimen name="lyric_icon_margin_end">4dp</dimen>
++    <dimen name="lyric_padding_end">4dp</dimen>
+ </resources>
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/StatusBarIconView.java b/packages/SystemUI/src/com/android/systemui/statusbar/StatusBarIconView.java
+index 895c25cd8178..3c2b05732d01 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/StatusBarIconView.java
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/StatusBarIconView.java
+@@ -182,6 +182,7 @@ public class StatusBarIconView extends AnimatedImageView implements StatusIconDi
+     private boolean mDismissed;
+     private Runnable mOnDismissListener;
+     private boolean mIncreasedSize;
++    private static boolean mNewIconStyle;
+     private boolean mShowsConversation;
+ 
+     public StatusBarIconView(Context context, String slot, StatusBarNotification sbn) {
+@@ -467,7 +468,7 @@ public class StatusBarIconView extends AnimatedImageView implements StatusIconDi
+      * @return Drawable for this item, or null if the package or item could not
+      *         be found
+      */
+-    private Drawable getIcon(Context sysuiContext,
++    public static Drawable getIcon(Context sysuiContext,
+             Context context, StatusBarIcon statusBarIcon) {
+         int userId = statusBarIcon.user.getIdentifier();
+         if (userId == UserHandle.USER_ALL) {
+@@ -684,11 +685,12 @@ public class StatusBarIconView extends AnimatedImageView implements StatusIconDi
+     }
+ 
+     private void initializeDecorColor() {
+-        if (isNotification()) {
++        setDecorColor(getContext().getColor(mNightMode
+             setDecorColor(getContext().getColor(mNightMode
++                ? com.android.internal.R.color.notification_default_color_dark
+                     ? com.android.internal.R.color.notification_default_color_dark
+-                    : com.android.internal.R.color.notification_default_color_light));
+-        }
++                : com.android.internal.R.color.notification_default_color_light));
++                    : com.android.internal.R.color.notification_default_color_light)); 
+     }
+ 
+     private void updateDecorColor() {
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/notification/collection/NotifCollection.java b/packages/SystemUI/src/com/android/systemui/statusbar/notification/collection/NotifCollection.java
+index e763797d9966..1f702af2bd47 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/notification/collection/NotifCollection.java
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/notification/collection/NotifCollection.java
+@@ -536,6 +536,10 @@ public class NotifCollection implements Dumpable, PipelineDumpable {
+ 
+             mLogger.logNotifUpdated(entry);
+             mEventQueue.add(new EntryUpdatedEvent(entry, true /* fromSystem */));
++            // update ticker only, LyricController will handle it
++            if ((entry.getSbn().getNotification().flags & Notification.FLAG_ONLY_UPDATE_TICKER) != 0) {
++                return;
++            }
+         }
+     }
+ 
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/phone/HeadsUpAppearanceController.java b/packages/SystemUI/src/com/android/systemui/statusbar/phone/HeadsUpAppearanceController.java
+index a1f12b896d3b..dff10eebaa0b 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/phone/HeadsUpAppearanceController.java
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/phone/HeadsUpAppearanceController.java
+@@ -87,6 +87,7 @@ public class HeadsUpAppearanceController extends ViewController<HeadsUpStatusBar
+ 
+     private final View mClockView;
+     private final Optional<View> mOperatorNameViewOptional;
++    private LyricViewController mLyricViewController;
+ 
+     @VisibleForTesting
+     float mExpandedHeight;
+@@ -235,6 +236,10 @@ public class HeadsUpAppearanceController extends ViewController<HeadsUpStatusBar
+         }
+     }
+ 
++    public void setLyricViewController(LyricViewController controller) {
++        mLyricViewController = controller;
++    }
++
+     private void setShown(boolean isShown) {
+         if (mShown != isShown) {
+             mShown = isShown;
+@@ -244,12 +249,18 @@ public class HeadsUpAppearanceController extends ViewController<HeadsUpStatusBar
+                 show(mView);
+                 hide(mClockView, View.INVISIBLE);
+                 mOperatorNameViewOptional.ifPresent(view -> hide(view, View.INVISIBLE));
++                if (mLyricViewController != null) {
++                    mLyricViewController.hideLyricView(mAnimationsEnabled);
++                }
+             } else {
+                 show(mClockView);
+                 mOperatorNameViewOptional.ifPresent(this::show);
+                 hide(mView, View.GONE, () -> {
+                     updateParentClipping(true /* shouldClip */);
+                 });
++                if (mLyricViewController != null) {
++                    mLyricViewController.showLyricView(mAnimationsEnabled);
++                }
+             }
+             // Show the status bar icons when the view gets shown / hidden
+             if (mStatusBarStateController.getState() != StatusBarState.SHADE) {
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/phone/LyricViewController.java b/packages/SystemUI/src/com/android/systemui/statusbar/phone/LyricViewController.java
+new file mode 100644
+index 000000000000..34f1ffb3ea99
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/phone/LyricViewController.java
+@@ -0,0 +1,221 @@
++
++/*
++ * Copyright (C) 2022 Project Kaleidoscope
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.systemui.statusbar.phone;
++
++import android.app.Notification;
++import android.content.Context;
++import android.content.res.ColorStateList;
++import android.graphics.Rect;
++import android.graphics.drawable.Drawable;
++import android.service.notification.NotificationListenerService;
++import android.service.notification.NotificationListenerService.RankingMap;
++import android.service.notification.StatusBarNotification;
++import android.text.TextUtils;
++import android.view.MotionEvent;
++import android.view.View;
++import android.view.animation.Animation;
++import android.view.animation.AnimationUtils;
++import android.widget.ImageSwitcher;
++import android.widget.ImageView;
++import android.widget.TextSwitcher;
++import android.widget.TextView;
++
++import com.android.internal.statusbar.StatusBarIcon;
++import com.android.internal.util.ContrastColorUtil;
++import com.android.systemui.Dependency;
++import com.android.systemui.R;
++import com.android.systemui.plugins.DarkIconDispatcher;
++import com.android.systemui.statusbar.NotificationListener;
++import com.android.systemui.statusbar.StatusBarIconView;
++
++import java.util.ArrayList;
++
++public abstract class LyricViewController implements
++    DarkIconDispatcher.DarkReceiver,
++    NotificationListener.NotificationHandler {
++
++    private static final String EXTRA_TICKER_ICON = "ticker_icon";
++    private static final String EXTRA_TICKER_ICON_SWITCH = "ticker_icon_switch";
++
++    private static final int HIDE_LYRIC_DELAY = 1200;
++
++    private final Context mContext;
++    private final ImageSwitcher mIconSwitcher;
++    private final TextSwitcher mTextSwitcher;
++    private final View mLyricContainer;
++
++    private final ContrastColorUtil mNotificationColorUtil;
++
++    private boolean mEnabled;
++    private boolean mStarted;
++
++    private String mCurrentNotificationPackage = null;
++    private int mCurrentNotificationId;
++
++    private ColorStateList mTintColorStateList;
++
++    public LyricViewController(Context context, View statusBar) {
++        mContext = context;
++        mLyricContainer = statusBar.findViewById(R.id.lyric_container);
++        mIconSwitcher = statusBar.findViewById(R.id.lyric_icon);
++        mTextSwitcher = statusBar.findViewById(R.id.lyric_text);
++
++        mNotificationColorUtil = ContrastColorUtil.getInstance(mContext);
++
++        Animation animationIn = AnimationUtils.loadAnimation(mContext,
++                com.android.internal.R.anim.push_up_in);
++        Animation animationOut = AnimationUtils.loadAnimation(mContext,
++                com.android.internal.R.anim.push_up_out);
++
++        mTextSwitcher.setInAnimation(animationIn);
++        mTextSwitcher.setOutAnimation(animationOut);
++        mIconSwitcher.setInAnimation(animationIn);
++        mIconSwitcher.setOutAnimation(animationOut);
++
++        mLyricContainer.setOnTouchListener((v, event) -> {
++            if (event.getAction() == MotionEvent.ACTION_DOWN) {
++                hideLyricView(true);
++                v.postDelayed(() -> showLyricView(true), HIDE_LYRIC_DELAY);
++            }
++            return false;
++        });
++
++        Dependency.get(DarkIconDispatcher.class).addDarkReceiver(this);
++        Dependency.get(NotificationListener.class).addNotificationHandler(this);
++    }
++
++    public void setEnabled(boolean enabled) {
++        mEnabled = enabled;
++        if (!mEnabled && mStarted) {
++            stopLyric();
++        }
++    }
++
++    public boolean isEnabled() {
++        return mEnabled;
++    }
++
++    @Override
++    public void onNotificationPosted(StatusBarNotification sbn, RankingMap rankingMap) {
++        if (!mEnabled) return;
++
++        Notification notification = sbn.getNotification();
++        boolean isLyric = ((notification.flags & Notification.FLAG_ALWAYS_SHOW_TICKER) != 0)
++                && ((notification.flags & Notification.FLAG_ONLY_UPDATE_TICKER) != 0);
++
++        boolean isCurrentNotification = mCurrentNotificationId == sbn.getId() &&
++                TextUtils.equals(sbn.getPackageName(), mCurrentNotificationPackage);
++        if (!isLyric) {
++            if (isCurrentNotification) {
++                stopLyric();
++            }
++        } else {
++            mCurrentNotificationPackage = sbn.getPackageName();
++            mCurrentNotificationId = sbn.getId();
++
++            if (notification.tickerText == null) {
++                stopLyric();
++                return;
++            }
++            if (!isCurrentNotification || !mStarted ||
++                    notification.extras.getBoolean(EXTRA_TICKER_ICON_SWITCH, false)) {
++                int iconId = notification.extras.getInt(EXTRA_TICKER_ICON, -1);
++                Drawable icon = iconId == -1 ? notification.getSmallIcon().loadDrawable(mContext) :
++                        StatusBarIconView.getIcon(mContext, sbn.getPackageContext(mContext),
++                                new StatusBarIcon(sbn.getPackageName(), sbn.getUser(),
++                                    iconId, notification.iconLevel, 0, null));
++                mIconSwitcher.setImageDrawable(icon);
++                updateIconTint();
++            }
++            startLyric();
++            mTextSwitcher.setText(notification.tickerText);
++        }
++    }
++
++    public void onNotificationRemoved(StatusBarNotification sbn, RankingMap rankingMap) {
++        boolean isCurrentNotification = mCurrentNotificationId == sbn.getId() &&
++                TextUtils.equals(sbn.getPackageName(), mCurrentNotificationPackage);
++        if (isCurrentNotification) {
++            stopLyric();
++        }
++    }
++
++    @Override
++    public void onNotificationRemoved(StatusBarNotification sbn, RankingMap rankingMap, int reason) {
++        onNotificationRemoved(sbn, rankingMap);
++    }
++
++    @Override
++    public void onNotificationRankingUpdate(RankingMap rankingMap) {
++    }
++
++    @Override
++    public void onNotificationsInitialized() {
++    }
++
++    public void startLyric() {
++        if (!mStarted) {
++            mStarted = true;
++            showLyricView(true);
++        }
++    }
++
++    public void stopLyric() {
++        if (mStarted) {
++            mStarted = false;
++            hideLyricView(true);
++            mCurrentNotificationPackage = null;
++            mCurrentNotificationId = 0;
++        }
++    }
++
++    public abstract void showLyricView(boolean animate);
++
++    public abstract void hideLyricView(boolean animate);
++
++    public boolean isLyricStarted() {
++        return mStarted;
++    }
++
++    public View getView() {
++        return mLyricContainer;
++    }
++
++    private void updateIconTint() {
++        Drawable drawable = ((ImageView)mIconSwitcher.getCurrentView()).getDrawable();
++        boolean isGrayscale = mNotificationColorUtil.isGrayscaleIcon(drawable);
++        if (isGrayscale) {
++            ((ImageView) mIconSwitcher.getCurrentView()).setImageTintList(mTintColorStateList);
++            ((ImageView) mIconSwitcher.getNextView()).setImageTintList(mTintColorStateList);
++        } else {
++            ((ImageView) mIconSwitcher.getCurrentView()).setImageTintList(null);
++            ((ImageView) mIconSwitcher.getNextView()).setImageTintList(null);
++        }
++    }
++
++    @Override
++    public void onDarkChanged(ArrayList<Rect> area, float darkIntensity, int tint) {
++        int tintColor = DarkIconDispatcher.getTint(area, mLyricContainer, tint);
++
++        ((TextView) mTextSwitcher.getCurrentView()).setTextColor(tintColor);
++        ((TextView) mTextSwitcher.getNextView()).setTextColor(tintColor);
++
++        mTintColorStateList = ColorStateList.valueOf(tintColor);
++        updateIconTint();
++    }
++}
+\ No newline at end of file
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java b/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
+index 0d580792a9dc..807498d3b114 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
+@@ -17,6 +17,7 @@ package com.android.systemui.statusbar.phone.fragment;
+ import android.annotation.Nullable;
+ import android.annotation.SuppressLint;
+ import android.app.Fragment;
++import android.content.Context;
+ import android.database.ContentObserver;
+ import android.os.Bundle;
+ import android.os.Parcelable;
+@@ -60,6 +61,7 @@ import com.android.systemui.statusbar.phone.StatusBarIconController;
+ import com.android.systemui.statusbar.phone.StatusBarIconController.DarkIconManager;
+ import com.android.systemui.statusbar.phone.StatusBarLocation;
+ import com.android.systemui.statusbar.phone.StatusBarLocationPublisher;
++import com.android.systemui.statusbar.phone.LyricViewController;
+ import com.android.systemui.statusbar.phone.fragment.dagger.StatusBarFragmentComponent;
+ import com.android.systemui.statusbar.phone.fragment.dagger.StatusBarFragmentComponent.Startable;
+ import com.android.systemui.statusbar.phone.ongoingcall.OngoingCallController;
+@@ -98,6 +100,7 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+     public static final String TAG = "CollapsedStatusBarFragment";
+     private static final String EXTRA_PANEL_STATE = "panel_state";
+     public static final String STATUS_BAR_ICON_MANAGER_TAG = "status_bar_icon_manager";
++    private static final String STATUS_BAR_SHOW_LYRIC = Settings.Secure.STATUS_BAR_SHOW_LYRIC;    
+     public static final int FADE_IN_DURATION = 320;
+     public static final int FADE_OUT_DURATION = 160;
+     public static final int FADE_IN_DELAY = 50;
+@@ -142,6 +145,7 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+     private final DumpManager mDumpManager;
+     private final StatusBarWindowStateController mStatusBarWindowStateController;
+     private final KeyguardUpdateMonitor mKeyguardUpdateMonitor;
++    private LyricController mLyricController;
+ 
+     private List<String> mBlockedIcons = new ArrayList<>();
+     private Map<Startable, Startable.State> mStartableStates = new ArrayMap<>();
+@@ -308,12 +312,14 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+         showClock(false);
+         initOperatorName();
+         initNotificationIconArea();
++        mLyricController = new LyricController(getContext(), mStatusBar);
++        mStatusBarFragmentComponent.getHeadsUpAppearanceController().setLyricViewController(mLyricController);
+         mSystemEventAnimator = getSystemEventAnimator();
+         mCarrierConfigTracker.addCallback(mCarrierConfigCallback);
+         mCarrierConfigTracker.addDefaultDataSubscriptionChangedListener(mDefaultDataListener);
+-
+         mCollapsedStatusBarViewBinder.bind(
+                 mStatusBar, mCollapsedStatusBarViewModel, mStatusBarVisibilityChangeListener);
++        mTunerService.addTunable(this, STATUS_BAR_SHOW_LYRIC);
+     }
+ 
+     @Override
+@@ -402,6 +408,19 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+         mDumpManager.unregisterDumpable(getClass().getSimpleName());
+     }
+ 
++        public void onTuningChanged(String key, String newValue) {
++        switch (key) {
++            case STATUS_BAR_SHOW_LYRIC:
++                if (mLyricController != null) {
++                    boolean enable = TunerService.parseIntegerSwitch(newValue, false);
++                    mLyricController.setEnabled(enable);
++                }
++                break;
++            default:
++                break;
++         }
++    }
++
+     /** Initializes views related to the notification icon area. */
+     public void initNotificationIconArea() {
+         ViewGroup notificationIconArea = mStatusBar.findViewById(R.id.notification_icon_area);
+@@ -526,8 +545,14 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+         // Hide notifications if the disable flag is set or we have an ongoing call.
+         if (disableNotifications || hasOngoingCall) {
+             hideNotificationIconArea(animate);
++            if (mLyricController != null) {
++                mLyricController.hideLyricView(animate);
++            }
+         } else {
+             showNotificationIconArea(animate);
++            if (mLyricController != null) {
++                mLyricController.showLyricView(animate);
++            }
+         }
+ 
+         // Show the ongoing call chip only if there is an ongoing call *and* notification icons
+@@ -815,6 +840,36 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+                 pw.println(startable + ", state: " + startableState);
+             }
+             pw.decreaseIndent();
++            
++        }
++    }
++    
++       private class LyricController extends LyricViewController {
++        private View mLeftSide;
++        private View mLeftSide;
++
++        public LyricController(Context context, View statusBar) {
++            super(context, statusBar);
++            mLeftSide = statusBar.findViewById(R.id.status_bar_start_side_except_heads_up);
++            mCenteredArea = statusBar.findViewById(R.id.centered_area);
++        }
++
++        public void showLyricView(boolean animate) {
++            StatusBarVisibilityModel visibilityModel = mLastModifiedVisibility;
++
++            boolean disableNotifications = !visibilityModel.getShowNotificationIcons();
++            boolean hasOngoingCall = visibilityModel.getShowOngoingCallChip();
++            if (!disableNotifications && !hasOngoingCall && isLyricStarted()) {
++                animateHide(mLeftSide, animate);
++                animateHide(mCenteredArea, animate);
++                animateShow(getView(), animate);
++            }
++        }
++
++        public void hideLyricView(boolean animate) {
++            animateHide(getView(), animate);
++            animateShow(mLeftSide, animate);
++            animateShow(mCenteredArea, animate);
+         }
+     }
+ }
+diff --git a/packages/SystemUI/src/com/android/systemui/util/LyricTextView.java b/packages/SystemUI/src/com/android/systemui/util/LyricTextView.java
+new file mode 100644
+index 000000000000..3d1600d57c47
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/util/LyricTextView.java
+@@ -0,0 +1,151 @@
++
++/*
++ * Copyright (C) 2020 The exTHmUI Open Source Project
++ *               2022 Project Kaleidoscope
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.systemui.util;
++
++import android.content.Context;
++import android.graphics.Canvas;
++import android.graphics.Paint;
++import android.icu.text.Bidi;
++import android.util.AttributeSet;
++import android.view.View;
++import android.widget.TextView;
++
++public class LyricTextView extends TextView {
++
++    private boolean mStopped = true;
++    private int mTextWidth;
++    private int mScrollSpeed = 4;
++    private int mOffset = 0;
++    private String mText;
++    private boolean mTextRtl;
++
++    private static final int START_SCROLL_DELAY = 500;
++    private static final int INVALIDATE_DELAY = 10;
++
++    private final Runnable mStartScrollRunnable = this::startScroll;
++    private final Runnable mInvalidateRunnable = this::invalidate;
++
++    public LyricTextView(Context context) {
++        this(context, null);
++    }
++
++    public LyricTextView(Context context, AttributeSet attrs) {
++        this(context, attrs, 0); // com.android.internal.R.attr.textViewStyle
++    }
++
++    public LyricTextView(Context context, AttributeSet attrs, int defStyleAttr) {
++        this(context, attrs, defStyleAttr, 0);
++    }
++
++    public LyricTextView(Context context, AttributeSet attrs, int defStyleAttr,
++                         int defStyleRes) {
++        super(context, attrs, defStyleAttr, defStyleRes);
++    }
++
++    @Override
++    protected void onDetachedFromWindow() {
++        removeCallbacks(mStartScrollRunnable);
++        super.onDetachedFromWindow();
++    }
++
++    @Override
++    protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
++        super.onTextChanged(text, start, lengthBefore, lengthAfter);
++        stopScroll();
++        if (text != null) {
++            mText = text.toString();
++            mTextRtl = Bidi.getBaseDirection(mText) == Bidi.RTL;
++            if (mTextRtl) {
++                getPaint().setTextAlign(Paint.Align.RIGHT);
++                mOffset = -1;
++            } else {
++                getPaint().setTextAlign(Paint.Align.LEFT);
++                if (View.LAYOUT_DIRECTION_RTL == getLayoutDirection()) {
++                    mOffset = -1;
++                } else {
++                    mOffset = 0;
++                }
++            }
++            mTextWidth = (int) getPaint().measureText(mText);
++            postInvalidate();
++            postDelayed(mStartScrollRunnable, START_SCROLL_DELAY);
++        } else {
++            mText = null;
++        }
++    }
++
++    @Override
++    public void setTextColor(int color) {
++        getPaint().setColor(color);
++        postInvalidate();
++    }
++
++    @Override
++    protected void onDraw(Canvas canvas) {
++        boolean viewRtl = View.LAYOUT_DIRECTION_RTL == getLayoutDirection();
++        if (mTextRtl && mOffset == -1) {
++            mOffset = getWidth();
++        } else if (viewRtl && mOffset == -1) {
++            mOffset = Math.max(0, getWidth() - mTextWidth);
++        }
++        if (canvas != null && mText != null) {
++            float y = getHeight() / 2.0f + Math.abs(getPaint().ascent() + getPaint().descent()) / 2;
++            canvas.drawText(mText, mOffset, y, getPaint());
++        }
++        if (!mStopped) {
++            if (!mTextRtl) {
++                if (getWidth() - mOffset + mScrollSpeed >= mTextWidth) {
++                    mOffset = getWidth() > mTextWidth && !viewRtl ? 0 : getWidth() - mTextWidth;
++                    stopScroll();
++                } else {
++                    mOffset -= mScrollSpeed;
++                }
++            } else {
++                if (mOffset + mScrollSpeed >= mTextWidth) {
++                    mOffset = Math.max(getWidth(), mTextWidth);
++                    stopScroll();
++                } else {
++                    mOffset += mScrollSpeed;
++                }
++            }
++            invalidateAfter(INVALIDATE_DELAY);
++        }
++    }
++
++    private void invalidateAfter(long delay) {
++        removeCallbacks(mInvalidateRunnable);
++        postDelayed(mInvalidateRunnable, delay);
++    }
++
++
++    public void startScroll() {
++        mStopped = false;
++        postInvalidate();
++    }
++
++    public void stopScroll() {
++        mStopped = true;
++        removeCallbacks(mStartScrollRunnable);
++        postInvalidate();
++    }
++
++    public void setScrollSpeed(int scrollSpeed) {
++        this.mScrollSpeed = scrollSpeed;
++    }
++}
+\ No newline at end of file
+-- 
+2.34.1
+
