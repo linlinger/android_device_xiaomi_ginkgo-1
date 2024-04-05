@@ -1,9 +1,9 @@
-From e7abd973300e94e37652e1817093c202a00eb8c2 Mon Sep 17 00:00:00 2001
+From 6502545bca3bf9c7d09cb4d40d62dcc15cf81bb4 Mon Sep 17 00:00:00 2001
 From: linlinger <32541118+linlinger@users.noreply.github.com>
-Date: Fri, 5 Apr 2024 03:33:45 +0800
+Date: Fri, 5 Apr 2024 15:32:32 +0800
 Subject: [PATCH] Add support for status bar lyric
 
-Change-Id: I9848533253080854379fc19b432aa0e0c077b8a5
+Change-Id: I1229c50554718d6097c1530f700e1ac7838e65f2
 ---
  core/api/current.txt                          |   2 +
  core/java/android/app/Instrumentation.java    |   8 +-
@@ -13,15 +13,15 @@ Change-Id: I9848533253080854379fc19b432aa0e0c077b8a5
  .../internal/util/custom/MeizuPropsUtils.java |  85 +++++++
  packages/SystemUI/res/layout/status_bar.xml   |   3 +
  .../SystemUI/res/layout/status_bar_lyric.xml  |  55 +++++
- packages/SystemUI/res/values/aosp_styles.xml  |   8 +
+ packages/SystemUI/res/values/aosp_styles.xml  |   7 +
  packages/SystemUI/res/values/dimens.xml       |   4 +
  .../systemui/statusbar/StatusBarIconView.java |  10 +-
  .../collection/NotifCollection.java           |   4 +
  .../phone/HeadsUpAppearanceController.java    |  11 +
  .../statusbar/phone/LyricViewController.java  | 221 ++++++++++++++++++
- .../fragment/CollapsedStatusBarFragment.java  |  57 ++++-
+ .../fragment/CollapsedStatusBarFragment.java  |  56 ++++-
  .../android/systemui/util/LyricTextView.java  | 151 ++++++++++++
- 16 files changed, 633 insertions(+), 6 deletions(-)
+ 16 files changed, 631 insertions(+), 6 deletions(-)
  create mode 100644 core/java/com/android/internal/util/custom/MeizuPropsUtils.java
  create mode 100644 packages/SystemUI/res/layout/status_bar_lyric.xml
  create mode 100644 packages/SystemUI/res/values/aosp_styles.xml
@@ -74,7 +74,6 @@ index 52fd5d9d12ad..4059012a675d 100644
 @@ -1284,6 +1287,9 @@ public class Instrumentation {
                  .instantiateApplication(cl, className);
          app.attach(context);
-+        String packageName = context.getPackageName();
          PixelPropsUtils.setProps(context);
 +        //if (SystemProperties.getBoolean(DISGUISE_PROPS_FOR_MUSIC_APP, false)) {
 +            MeizuPropsUtils.setProps(packageName);
@@ -305,10 +304,10 @@ index 000000000000..1b6bc7ba19bb
 \ No newline at end of file
 diff --git a/packages/SystemUI/res/values/aosp_styles.xml b/packages/SystemUI/res/values/aosp_styles.xml
 new file mode 100644
-index 000000000000..6f829370d915
+index 000000000000..903edd8f8f94
 --- /dev/null
 +++ b/packages/SystemUI/res/values/aosp_styles.xml
-@@ -0,0 +1,8 @@
+@@ -0,0 +1,7 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<resources>
 +    <style name="TextApperance.StatusBar.Lyric" parent="@*android:style/TextAppearance.StatusBar">
@@ -653,7 +652,7 @@ index 000000000000..34f1ffb3ea99
 +}
 \ No newline at end of file
 diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java b/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
-index 0d580792a9dc..807498d3b114 100644
+index 0d580792a9dc..77f1335423c9 100644
 --- a/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
 +++ b/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
 @@ -17,6 +17,7 @@ package com.android.systemui.statusbar.phone.fragment;
@@ -739,7 +738,7 @@ index 0d580792a9dc..807498d3b114 100644
          }
  
          // Show the ongoing call chip only if there is an ongoing call *and* notification icons
-@@ -815,6 +840,36 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+@@ -815,6 +840,35 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
                  pw.println(startable + ", state: " + startableState);
              }
              pw.decreaseIndent();
