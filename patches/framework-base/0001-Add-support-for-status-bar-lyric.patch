@@ -749,7 +749,6 @@ index 0d580792a9dc..807498d3b114 100644
 +    
 +       private class LyricController extends LyricViewController {
 +        private View mLeftSide;
-+        private View mLeftSide;
 +
 +        public LyricController(Context context, View statusBar) {
 +            super(context, statusBar);
