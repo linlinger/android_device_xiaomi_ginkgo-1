@@ -1,7 +1,7 @@
 From d9d81cb0ed2a11ceaaebe8ca2c3f3f74ecced297 Mon Sep 17 00:00:00 2001
 From: linlinger <32541118+linlinger@users.noreply.github.com>
 Date: Fri, 5 Apr 2024 15:39:35 +0800
-Subject: [PATCH] Add support for status bar lyric
+Subject: [PATCH 1/2] Add support for status bar lyric
 
 Change-Id: Ideb4f89f0a4aaae100ae69b01dab246189de504f
 ---
