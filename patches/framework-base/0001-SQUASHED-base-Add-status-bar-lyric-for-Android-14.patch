@@ -1,30 +1,28 @@
-From d9d81cb0ed2a11ceaaebe8ca2c3f3f74ecced297 Mon Sep 17 00:00:00 2001
+From 26769b5d5c18c1634866c48bcfed11c2aea83da9 Mon Sep 17 00:00:00 2001
 From: linlinger <32541118+linlinger@users.noreply.github.com>
-Date: Fri, 5 Apr 2024 15:39:35 +0800
-Subject: [PATCH 1/2] Add support for status bar lyric
+Date: Sat, 6 Apr 2024 02:05:26 +0800
+Subject: [PATCH 1/3] SQUASHED-base-Add-status-bar-lyric-for-Android-14
 
-Change-Id: Ideb4f89f0a4aaae100ae69b01dab246189de504f
+Change-Id: I0518191805f9b55490a30c6783ebad408f9dc3fb
 ---
  core/api/current.txt                          |   2 +
- core/java/android/app/Instrumentation.java    |   9 +-
- core/java/android/app/Notification.java       |   5 +
- core/java/android/os/Vibrator.java            |   3 +
- core/java/android/provider/Settings.java      |  12 +
- .../internal/util/custom/MeizuPropsUtils.java |  85 +++++++
- packages/SystemUI/res/layout/status_bar.xml   |   3 +
+ core/java/android/app/Notification.java       |   4 +
+ core/java/android/provider/Settings.java      |  13 ++
+ packages/SystemUI/res/layout/status_bar.xml   |   2 +
  .../SystemUI/res/layout/status_bar_lyric.xml  |  55 +++++
- packages/SystemUI/res/values/aosp_styles.xml  |   7 +
- packages/SystemUI/res/values/dimens.xml       |   4 +
- .../systemui/statusbar/StatusBarIconView.java |  10 +-
+ .../SystemUI/res/values/custom_dimens.xml     |  22 ++
+ .../SystemUI/res/values/custom_styles.xml     |   8 +
+ .../systemui/statusbar/StatusBarIconView.java |   2 +-
  .../collection/NotifCollection.java           |   4 +
- .../phone/HeadsUpAppearanceController.java    |  11 +
- .../statusbar/phone/LyricViewController.java  | 221 ++++++++++++++++++
- .../fragment/CollapsedStatusBarFragment.java  |  56 ++++-
- .../android/systemui/util/LyricTextView.java  | 151 ++++++++++++
- 16 files changed, 632 insertions(+), 6 deletions(-)
- create mode 100644 core/java/com/android/internal/util/custom/MeizuPropsUtils.java
+ .../phone/HeadsUpAppearanceController.java    |  12 +
+ .../statusbar/phone/LyricViewController.java  | 220 ++++++++++++++++++
+ .../fragment/CollapsedStatusBarFragment.java  |  48 +++-
+ .../android/systemui/tuner/TunerService.java  |   8 +
+ .../android/systemui/util/LyricTextView.java  | 150 ++++++++++++
+ 14 files changed, 548 insertions(+), 2 deletions(-)
  create mode 100644 packages/SystemUI/res/layout/status_bar_lyric.xml
- create mode 100644 packages/SystemUI/res/values/aosp_styles.xml
+ create mode 100644 packages/SystemUI/res/values/custom_dimens.xml
+ create mode 100644 packages/SystemUI/res/values/custom_styles.xml
  create mode 100644 packages/SystemUI/src/com/android/systemui/statusbar/phone/LyricViewController.java
  create mode 100644 packages/SystemUI/src/com/android/systemui/util/LyricTextView.java
 
@@ -41,87 +39,31 @@ index 288ab479c0fb..2406d7466998 100644
      field @Deprecated public static final int FLAG_SHOW_LIGHTS = 1; // 0x1
      field public static final int FOREGROUND_SERVICE_DEFAULT = 0; // 0x0
      field public static final int FOREGROUND_SERVICE_DEFERRED = 2; // 0x2
-diff --git a/core/java/android/app/Instrumentation.java b/core/java/android/app/Instrumentation.java
-index 52fd5d9d12ad..6217355725ba 100644
---- a/core/java/android/app/Instrumentation.java
-+++ b/core/java/android/app/Instrumentation.java
-@@ -42,6 +42,7 @@ import android.os.Process;
- import android.os.RemoteException;
- import android.os.ServiceManager;
- import android.os.SystemClock;
-+import android.os.SystemProperties;
- import android.os.TestLooperManager;
- import android.os.UserHandle;
- import android.os.UserManager;
-@@ -68,7 +69,7 @@ import java.util.List;
- import java.util.concurrent.TimeoutException;
- 
- import com.android.internal.util.custom.PixelPropsUtils;
--
-+import com.android.internal.util.custom.MeizuPropsUtils;
- /**
-  * Base class for implementing application instrumentation code.  When running
-  * with instrumentation turned on, this class will be instantiated for you
-@@ -100,6 +101,8 @@ public class Instrumentation {
- 
-     private static final boolean VERBOSE = Log.isLoggable(TAG, Log.VERBOSE);
- 
-+    private static final String DISGUISE_PROPS_FOR_MUSIC_APP = "persist.sys.disguise_props_for_music_app";
-+
-     /**
-      * @hide
-      */
-@@ -1283,7 +1286,11 @@ public class Instrumentation {
-         Application app = getFactory(context.getPackageName())
-                 .instantiateApplication(cl, className);
-         app.attach(context);
-+        String packageName = context.getPackageName();
-         PixelPropsUtils.setProps(context);
-+        //if (SystemProperties.getBoolean(DISGUISE_PROPS_FOR_MUSIC_APP, false)) {
-+            MeizuPropsUtils.setProps(packageName);
-+        //}
-         return app;
-     }
-     
 diff --git a/core/java/android/app/Notification.java b/core/java/android/app/Notification.java
-index ced35549769a..f123685d6936 100644
+index ced35549769a..3b15be55a945 100644
 --- a/core/java/android/app/Notification.java
 +++ b/core/java/android/app/Notification.java
-@@ -732,6 +732,11 @@ public class Notification implements Parcelable
-     @TestApi
-     public static final int FLAG_USER_INITIATED_JOB = 0x00008000;
+@@ -703,6 +703,10 @@ public class Notification implements Parcelable
+      */
+     public static final int FLAG_BUBBLE = 0x00001000;
  
-+
 +    public static final int FLAG_ALWAYS_SHOW_TICKER = 0x01000000;
-+
++    
 +    public static final int FLAG_ONLY_UPDATE_TICKER = 0x02000000;
 +
-     private static final List<Class<? extends Style>> PLATFORM_STYLE_CLASSES = Arrays.asList(
-             BigTextStyle.class, BigPictureStyle.class, InboxStyle.class, MediaStyle.class,
-             DecoratedCustomViewStyle.class, DecoratedMediaCustomViewStyle.class,
-diff --git a/core/java/android/os/Vibrator.java b/core/java/android/os/Vibrator.java
-index 4e852e333ec8..005da576b84b 100644
---- a/core/java/android/os/Vibrator.java
-+++ b/core/java/android/os/Vibrator.java
-@@ -660,6 +660,9 @@ public abstract class Vibrator {
-         int[] durations = new int[primitiveIds.length];
-         for (int i = 0; i < primitiveIds.length; i++) {
-             durations[i] = info.getPrimitiveDuration(primitiveIds[i]);
-+            if (durations[i] == 0) {
-+                durations[i] = 1;
-+            }
-         }
-         return durations;
-     }
+     /**
+      * Bit to be bitswised-ored into the {@link #flags} field that should be
+      * set by the system if this notification is not dismissible.
 diff --git a/core/java/android/provider/Settings.java b/core/java/android/provider/Settings.java
-index ebe5fd6484ec..34e5feb15558 100644
+index ebe5fd6484ec..6f2ee18bd244 100644
 --- a/core/java/android/provider/Settings.java
 +++ b/core/java/android/provider/Settings.java
-@@ -6151,6 +6151,18 @@ public final class Settings {
-             PRIVATE_SETTINGS.add(HIGH_TOUCH_POLLING_RATE_ENABLE);
+@@ -12068,6 +12068,19 @@ public final class Settings {
+         public static void setLocationProviderEnabled(ContentResolver cr,
+                 String provider, boolean enabled) {
          }
- 
-+        /**
++        
++  .      /**
 +         * Show lyric in status bar when playing music
 +         * <ul>
 +         *    <li> 0 = disabled </li>
@@ -133,110 +75,17 @@ index ebe5fd6484ec..34e5feb15558 100644
 +        @Readable
 +        public static final String STATUS_BAR_SHOW_LYRIC = "status_bar_show_lyric";
 +
-         /**
-          * These entries are considered common between the personal and the managed profile,
-          * since the managed profile doesn't get to change them.
-diff --git a/core/java/com/android/internal/util/custom/MeizuPropsUtils.java b/core/java/com/android/internal/util/custom/MeizuPropsUtils.java
-new file mode 100644
-index 000000000000..dba98a42129e
---- /dev/null
-+++ b/core/java/com/android/internal/util/custom/MeizuPropsUtils.java
-@@ -0,0 +1,85 @@
-+/*
-+ * Copyright (C) 2020 The Pixel Experience Project
-+ *               2020 The exTHmUI Open Source Project
-+ *               2022 Project Kaleidoscope
-+ *
-+ * Licensed under the Apache License, Version 2.0 (the "License");
-+ * you may not use this file except in compliance with the License.
-+ * You may obtain a copy of the License at
-+ *
-+ * http://www.apache.org/licenses/LICENSE-2.0
-+ *
-+ * Unless required by applicable law or agreed to in writing, software
-+ * distributed under the License is distributed on an "AS IS" BASIS,
-+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-+ * See the License for the specific language governing permissions and
-+ * limitations under the License.
-+ */
-+package com.android.internal.util.custom;
-+
-+import android.os.Build;
-+import android.util.Log;
-+
-+import java.util.Arrays;
-+import java.lang.reflect.Field;
-+import java.util.HashMap;
-+import java.util.Map;
-+
-+public class MeizuPropsUtils {
-+
-+    private static final String TAG = MeizuPropsUtils.class.getSimpleName();
-+    private static final boolean DEBUG = false;
-+
-+    private static final Map<String, Object> propsToChange;
-+
-+    private static final String[] packagesToChange = {
-+        "com.hihonor.cloudmusic",
-+        "com.netease.cloudmusic",
-+        "com.tencent.qqmusic",
-+        "com.kugou.android",
-+        "com.kugou.android.lite",
-+        "cmccwm.mobilemusic",
-+        "cn.kuwo.player",
-+        "com.meizu.media.music"
-+    };
-+
-+    static {
-+        propsToChange = new HashMap<>();
-+        propsToChange.put("BRAND", "meizu");
-+        propsToChange.put("MANUFACTURER", "Meizu");
-+        propsToChange.put("DEVICE", "m1892");
-+        propsToChange.put("DISPLAY","Flyme");
-+        propsToChange.put("PRODUCT","meizu_16thPlus_CN");
-+        propsToChange.put("MODEL", "meizu 16th Plus");
-+    }
-+
-+    public static void setProps(String packageName) {
-+        if (packageName == null){
-+            return;
-+        }
-+        if (Arrays.asList(packagesToChange).contains(packageName)){
-+            if (DEBUG){
-+                Log.d(TAG, "Defining props for: " + packageName);
-+            }
-+            for (Map.Entry<String, Object> prop : propsToChange.entrySet()) {
-+                String key = prop.getKey();
-+                Object value = prop.getValue();
-+                setPropValue(key, value);
-+            }
-+        }
-+    }
-+
-+    private static void setPropValue(String key, Object value){
-+        try {
-+            if (DEBUG){
-+                Log.d(TAG, "Defining prop " + key + " to " + value.toString());
-+            }
-+            Field field = Build.class.getDeclaredField(key);
-+            field.setAccessible(true);
-+            field.set(null, value);
-+            field.setAccessible(false);
-+        } catch (NoSuchFieldException | IllegalAccessException e) {
-+            Log.e(TAG, "Failed to set prop " + key, e);
-+        }
-+    }
-+}
-\ No newline at end of file
+     }
+ 
+     /**
 diff --git a/packages/SystemUI/res/layout/status_bar.xml b/packages/SystemUI/res/layout/status_bar.xml
-index c5351b15b594..09902cc0a0c0 100644
+index c5351b15b594..ad08c0bb453b 100644
 --- a/packages/SystemUI/res/layout/status_bar.xml
 +++ b/packages/SystemUI/res/layout/status_bar.xml
-@@ -70,6 +70,9 @@
+@@ -70,6 +70,8 @@
                  android:layout_gravity="center_vertical|start"
                  android:clipChildren="false">
  
-+
 +                <include layout="@layout/status_bar_lyric" />
 +
                  <include layout="@layout/heads_up_status_bar_layout" />
@@ -244,7 +93,7 @@ index c5351b15b594..09902cc0a0c0 100644
                  <!-- The alpha of the start side is controlled by PhoneStatusBarTransitions, and the
 diff --git a/packages/SystemUI/res/layout/status_bar_lyric.xml b/packages/SystemUI/res/layout/status_bar_lyric.xml
 new file mode 100644
-index 000000000000..1b6bc7ba19bb
+index 000000000000..ce2002783b84
 --- /dev/null
 +++ b/packages/SystemUI/res/layout/status_bar_lyric.xml
 @@ -0,0 +1,55 @@
@@ -267,7 +116,7 @@ index 000000000000..1b6bc7ba19bb
 +  -->
 +<LinearLayout
 +    xmlns:android="http://schemas.android.com/apk/res/android"
-+    android:id="@+id/lyric_container"
++    android:id="@id/lyric_container"
 +    android:layout_width="match_parent"
 +    android:layout_height="match_parent"
 +    android:gravity="center_vertical"
@@ -275,7 +124,7 @@ index 000000000000..1b6bc7ba19bb
 +    android:orientation="horizontal"
 +    android:paddingEnd="@dimen/lyric_padding_end">
 +
-+    <ImageSwitcher android:id="@+id/lyric_icon"
++    <ImageSwitcher android:id="@id/lyric_icon"
 +        android:layout_width="@dimen/status_bar_icon_size"
 +        android:layout_height="@dimen/status_bar_icon_size"
 +        android:layout_marginEnd="@dimen/lyric_icon_margin_end">
@@ -288,7 +137,7 @@ index 000000000000..1b6bc7ba19bb
 +            android:layout_height="@dimen/status_bar_icon_size"
 +            android:scaleType="centerInside" />
 +    </ImageSwitcher>
-+    <TextSwitcher android:id="@+id/lyric_text"
++    <TextSwitcher android:id="@id/lyric_text"
 +        android:layout_width="match_parent"
 +        android:layout_height="wrap_content">
 +        <com.android.systemui.util.LyricTextView
@@ -304,46 +153,55 @@ index 000000000000..1b6bc7ba19bb
 +    </TextSwitcher>
 +</LinearLayout>
 \ No newline at end of file
-diff --git a/packages/SystemUI/res/values/aosp_styles.xml b/packages/SystemUI/res/values/aosp_styles.xml
+diff --git a/packages/SystemUI/res/values/custom_dimens.xml b/packages/SystemUI/res/values/custom_dimens.xml
 new file mode 100644
-index 000000000000..903edd8f8f94
+index 000000000000..c44f9a5b14a0
 --- /dev/null
-+++ b/packages/SystemUI/res/values/aosp_styles.xml
-@@ -0,0 +1,7 @@
++++ b/packages/SystemUI/res/values/custom_dimens.xml
+@@ -0,0 +1,22 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++ * Copyright (c) 2006, The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++*/
++-->
++<resources>
++    <!-- Lyric -->
++    <dimen name="lyric_icon_margin_end">4dp</dimen>
++    <dimen name="lyric_padding_end">4dp</dimen>
++</resources>
+\ No newline at end of file
+diff --git a/packages/SystemUI/res/values/custom_styles.xml b/packages/SystemUI/res/values/custom_styles.xml
+new file mode 100644
+index 000000000000..5bdc27e4f868
+--- /dev/null
++++ b/packages/SystemUI/res/values/custom_styles.xml
+@@ -0,0 +1,8 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<resources>
++    <!-- Lyric -->
 +    <style name="TextApperance.StatusBar.Lyric" parent="@*android:style/TextAppearance.StatusBar">
 +        <item name="android:textSize">14sp</item>
 +        <item name="android:fontFamily">@*android:string/config_bodyFontFamily</item>
 +    </style>
 +</resources>
 \ No newline at end of file
-diff --git a/packages/SystemUI/res/values/dimens.xml b/packages/SystemUI/res/values/dimens.xml
-index b4757b6601ba..92b9ac4ade40 100644
---- a/packages/SystemUI/res/values/dimens.xml
-+++ b/packages/SystemUI/res/values/dimens.xml
-@@ -1852,4 +1852,8 @@
-     <!-- Bouncer user switcher margins -->
-     <dimen name="bouncer_user_switcher_view_mode_user_switcher_bottom_margin">0dp</dimen>
-     <dimen name="bouncer_user_switcher_view_mode_view_flipper_bottom_margin">0dp</dimen>
-+
-+    <!-- Lyric -->
-+    <dimen name="lyric_icon_margin_end">4dp</dimen>
-+    <dimen name="lyric_padding_end">4dp</dimen>
- </resources>
 diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/StatusBarIconView.java b/packages/SystemUI/src/com/android/systemui/statusbar/StatusBarIconView.java
-index 895c25cd8178..3c2b05732d01 100644
+index 895c25cd8178..df6afcf910b6 100644
 --- a/packages/SystemUI/src/com/android/systemui/statusbar/StatusBarIconView.java
 +++ b/packages/SystemUI/src/com/android/systemui/statusbar/StatusBarIconView.java
-@@ -182,6 +182,7 @@ public class StatusBarIconView extends AnimatedImageView implements StatusIconDi
-     private boolean mDismissed;
-     private Runnable mOnDismissListener;
-     private boolean mIncreasedSize;
-+    private static boolean mNewIconStyle;
-     private boolean mShowsConversation;
- 
-     public StatusBarIconView(Context context, String slot, StatusBarNotification sbn) {
-@@ -467,7 +468,7 @@ public class StatusBarIconView extends AnimatedImageView implements StatusIconDi
+@@ -467,7 +467,7 @@ public class StatusBarIconView extends AnimatedImageView implements StatusIconDi
       * @return Drawable for this item, or null if the package or item could not
       *         be found
       */
@@ -352,24 +210,8 @@ index 895c25cd8178..3c2b05732d01 100644
              Context context, StatusBarIcon statusBarIcon) {
          int userId = statusBarIcon.user.getIdentifier();
          if (userId == UserHandle.USER_ALL) {
-@@ -684,11 +685,12 @@ public class StatusBarIconView extends AnimatedImageView implements StatusIconDi
-     }
- 
-     private void initializeDecorColor() {
--        if (isNotification()) {
-+        setDecorColor(getContext().getColor(mNightMode
-             setDecorColor(getContext().getColor(mNightMode
-+                ? com.android.internal.R.color.notification_default_color_dark
-                     ? com.android.internal.R.color.notification_default_color_dark
--                    : com.android.internal.R.color.notification_default_color_light));
--        }
-+                : com.android.internal.R.color.notification_default_color_light));
-+                    : com.android.internal.R.color.notification_default_color_light)); 
-     }
- 
-     private void updateDecorColor() {
 diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/notification/collection/NotifCollection.java b/packages/SystemUI/src/com/android/systemui/statusbar/notification/collection/NotifCollection.java
-index e763797d9966..1f702af2bd47 100644
+index e763797d9966..d2d07ae3bf87 100644
 --- a/packages/SystemUI/src/com/android/systemui/statusbar/notification/collection/NotifCollection.java
 +++ b/packages/SystemUI/src/com/android/systemui/statusbar/notification/collection/NotifCollection.java
 @@ -536,6 +536,10 @@ public class NotifCollection implements Dumpable, PipelineDumpable {
@@ -377,25 +219,26 @@ index e763797d9966..1f702af2bd47 100644
              mLogger.logNotifUpdated(entry);
              mEventQueue.add(new EntryUpdatedEvent(entry, true /* fromSystem */));
 +            // update ticker only, LyricController will handle it
-+            if ((entry.getSbn().getNotification().flags & Notification.FLAG_ONLY_UPDATE_TICKER) != 0) {
++            if ((notification.getNotification().flags & Notification.FLAG_ONLY_UPDATE_TICKER) != 0) {
 +                return;
 +            }
          }
      }
  
 diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/phone/HeadsUpAppearanceController.java b/packages/SystemUI/src/com/android/systemui/statusbar/phone/HeadsUpAppearanceController.java
-index a1f12b896d3b..dff10eebaa0b 100644
+index a1f12b896d3b..68aad984e33e 100644
 --- a/packages/SystemUI/src/com/android/systemui/statusbar/phone/HeadsUpAppearanceController.java
 +++ b/packages/SystemUI/src/com/android/systemui/statusbar/phone/HeadsUpAppearanceController.java
-@@ -87,6 +87,7 @@ public class HeadsUpAppearanceController extends ViewController<HeadsUpStatusBar
+@@ -104,6 +104,8 @@ public class HeadsUpAppearanceController extends ViewController<HeadsUpStatusBar
+     private boolean mAnimationsEnabled = true;
+     private final KeyguardStateController mKeyguardStateController;
  
-     private final View mClockView;
-     private final Optional<View> mOperatorNameViewOptional;
 +    private LyricViewController mLyricViewController;
- 
++
      @VisibleForTesting
-     float mExpandedHeight;
-@@ -235,6 +236,10 @@ public class HeadsUpAppearanceController extends ViewController<HeadsUpStatusBar
+     @Inject
+     public HeadsUpAppearanceController(
+@@ -235,6 +237,10 @@ public class HeadsUpAppearanceController extends ViewController<HeadsUpStatusBar
          }
      }
  
@@ -406,12 +249,12 @@ index a1f12b896d3b..dff10eebaa0b 100644
      private void setShown(boolean isShown) {
          if (mShown != isShown) {
              mShown = isShown;
-@@ -244,12 +249,18 @@ public class HeadsUpAppearanceController extends ViewController<HeadsUpStatusBar
+@@ -244,12 +250,18 @@ public class HeadsUpAppearanceController extends ViewController<HeadsUpStatusBar
                  show(mView);
                  hide(mClockView, View.INVISIBLE);
                  mOperatorNameViewOptional.ifPresent(view -> hide(view, View.INVISIBLE));
 +                if (mLyricViewController != null) {
-+                    mLyricViewController.hideLyricView(mAnimationsEnabled);
++                   mLyricViewController.hideLyricView(mAnimationsEnabled);
 +                }
              } else {
                  show(mClockView);
@@ -427,11 +270,10 @@ index a1f12b896d3b..dff10eebaa0b 100644
              if (mStatusBarStateController.getState() != StatusBarState.SHADE) {
 diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/phone/LyricViewController.java b/packages/SystemUI/src/com/android/systemui/statusbar/phone/LyricViewController.java
 new file mode 100644
-index 000000000000..34f1ffb3ea99
+index 000000000000..10a8a71b4f42
 --- /dev/null
 +++ b/packages/SystemUI/src/com/android/systemui/statusbar/phone/LyricViewController.java
-@@ -0,0 +1,221 @@
-+
+@@ -0,0 +1,220 @@
 +/*
 + * Copyright (C) 2022 Project Kaleidoscope
 + *
@@ -654,7 +496,7 @@ index 000000000000..34f1ffb3ea99
 +}
 \ No newline at end of file
 diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java b/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
-index 0d580792a9dc..77f1335423c9 100644
+index 0d580792a9dc..94ae5424c28e 100644
 --- a/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
 +++ b/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
 @@ -17,6 +17,7 @@ package com.android.systemui.statusbar.phone.fragment;
@@ -665,106 +507,105 @@ index 0d580792a9dc..77f1335423c9 100644
  import android.database.ContentObserver;
  import android.os.Bundle;
  import android.os.Parcelable;
-@@ -60,6 +61,7 @@ import com.android.systemui.statusbar.phone.StatusBarIconController;
- import com.android.systemui.statusbar.phone.StatusBarIconController.DarkIconManager;
- import com.android.systemui.statusbar.phone.StatusBarLocation;
- import com.android.systemui.statusbar.phone.StatusBarLocationPublisher;
+@@ -39,6 +40,7 @@ import com.android.app.animation.Interpolators;
+ import com.android.app.animation.InterpolatorsAndroidX;
+ import com.android.keyguard.KeyguardUpdateMonitor;
+ import com.android.systemui.Dumpable;
++import com.android.systemui.Dependency;
+ import com.android.systemui.R;
+ import com.android.systemui.dagger.qualifiers.Main;
+ import com.android.systemui.dump.DumpManager;
+@@ -53,6 +55,7 @@ import com.android.systemui.statusbar.StatusBarState;
+ import com.android.systemui.statusbar.disableflags.DisableFlagsLogger.DisableState;
+ import com.android.systemui.statusbar.events.SystemStatusAnimationCallback;
+ import com.android.systemui.statusbar.events.SystemStatusAnimationScheduler;
 +import com.android.systemui.statusbar.phone.LyricViewController;
- import com.android.systemui.statusbar.phone.fragment.dagger.StatusBarFragmentComponent;
- import com.android.systemui.statusbar.phone.fragment.dagger.StatusBarFragmentComponent.Startable;
- import com.android.systemui.statusbar.phone.ongoingcall.OngoingCallController;
-@@ -98,6 +100,7 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+ import com.android.systemui.statusbar.phone.NotificationIconAreaController;
+ import com.android.systemui.statusbar.phone.PhoneStatusBarView;
+ import com.android.systemui.statusbar.phone.StatusBarHideIconsForBouncerManager;
+@@ -70,6 +73,7 @@ import com.android.systemui.statusbar.pipeline.shared.ui.viewmodel.CollapsedStat
+ import com.android.systemui.statusbar.policy.KeyguardStateController;
+ import com.android.systemui.statusbar.window.StatusBarWindowStateController;
+ import com.android.systemui.statusbar.window.StatusBarWindowStateListener;
++import com.android.systemui.tuner.TunerService;
+ import com.android.systemui.util.CarrierConfigTracker;
+ import com.android.systemui.util.CarrierConfigTracker.CarrierConfigChangedListener;
+ import com.android.systemui.util.CarrierConfigTracker.DefaultDataSubscriptionChangedListener;
+@@ -93,7 +97,7 @@ import java.util.concurrent.Executor;
+ @SuppressLint("ValidFragment")
+ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue.Callbacks,
+         StatusBarStateController.StateListener,
+-        SystemStatusAnimationCallback, Dumpable {
++        SystemStatusAnimationCallback, Dumpable, TunerService.Tunable {
+ 
      public static final String TAG = "CollapsedStatusBarFragment";
      private static final String EXTRA_PANEL_STATE = "panel_state";
-     public static final String STATUS_BAR_ICON_MANAGER_TAG = "status_bar_icon_manager";
-+    private static final String STATUS_BAR_SHOW_LYRIC = Settings.Secure.STATUS_BAR_SHOW_LYRIC;    
-     public static final int FADE_IN_DURATION = 320;
-     public static final int FADE_OUT_DURATION = 160;
-     public static final int FADE_IN_DELAY = 50;
-@@ -142,6 +145,7 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+@@ -139,6 +143,8 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+     private final StatusBarIconController.DarkIconManager.Factory mDarkIconManagerFactory;
+     private final SecureSettings mSecureSettings;
+     private final Executor mMainExecutor;
++    private LyricController mLyricController;
++
      private final DumpManager mDumpManager;
      private final StatusBarWindowStateController mStatusBarWindowStateController;
      private final KeyguardUpdateMonitor mKeyguardUpdateMonitor;
-+    private LyricController mLyricController;
- 
-     private List<String> mBlockedIcons = new ArrayList<>();
-     private Map<Startable, Startable.State> mStartableStates = new ArrayMap<>();
-@@ -308,12 +312,14 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+@@ -308,6 +314,9 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
          showClock(false);
          initOperatorName();
          initNotificationIconArea();
 +        mLyricController = new LyricController(getContext(), mStatusBar);
 +        mStatusBarFragmentComponent.getHeadsUpAppearanceController().setLyricViewController(mLyricController);
++        Dependency.get(TunerService.class).addTunable(this, Settings.Secure.STATUS_BAR_SHOW_LYRIC);       
          mSystemEventAnimator = getSystemEventAnimator();
          mCarrierConfigTracker.addCallback(mCarrierConfigCallback);
          mCarrierConfigTracker.addDefaultDataSubscriptionChangedListener(mDefaultDataListener);
--
-         mCollapsedStatusBarViewBinder.bind(
-                 mStatusBar, mCollapsedStatusBarViewModel, mStatusBarVisibilityChangeListener);
-+        mTunerService.addTunable(this, STATUS_BAR_SHOW_LYRIC);
-     }
- 
-     @Override
-@@ -402,6 +408,19 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+@@ -402,6 +411,15 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
          mDumpManager.unregisterDumpable(getClass().getSimpleName());
      }
  
-+        public void onTuningChanged(String key, String newValue) {
-+        switch (key) {
-+            case STATUS_BAR_SHOW_LYRIC:
-+                if (mLyricController != null) {
-+                    boolean enable = TunerService.parseIntegerSwitch(newValue, false);
-+                    mLyricController.setEnabled(enable);
-+                }
-+                break;
-+            default:
-+                break;
-+         }
++    @Override
++    public void onTuningChanged(String key, String newValue) {
++        if (key.equals(Settings.Secure.STATUS_BAR_SHOW_LYRIC)) {
++            if (mLyricController != null) {
++                mLyricController.setEnabled(TunerService.parseIntegerSwitch(newValue, false));
++            }
++        }
 +    }
 +
      /** Initializes views related to the notification icon area. */
      public void initNotificationIconArea() {
          ViewGroup notificationIconArea = mStatusBar.findViewById(R.id.notification_icon_area);
-@@ -526,8 +545,14 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+@@ -526,8 +544,12 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
          // Hide notifications if the disable flag is set or we have an ongoing call.
          if (disableNotifications || hasOngoingCall) {
              hideNotificationIconArea(animate);
 +            if (mLyricController != null) {
-+                mLyricController.hideLyricView(animate);
-+            }
++                mLyricController.hideLyricView(animate);            
          } else {
              showNotificationIconArea(animate);
 +            if (mLyricController != null) {
 +                mLyricController.showLyricView(animate);
-+            }
          }
  
          // Show the ongoing call chip only if there is an ongoing call *and* notification icons
-@@ -815,6 +840,35 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
-                 pw.println(startable + ", state: " + startableState);
-             }
-             pw.decreaseIndent();
-+            
-+        }
-+    }
-+    
-+       private class LyricController extends LyricViewController {
+@@ -799,6 +821,30 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+                 }
+             };
+ 
++
++    private class LyricController extends LyricViewController {
 +        private View mLeftSide;
 +
 +        public LyricController(Context context, View statusBar) {
 +            super(context, statusBar);
-+            mLeftSide = statusBar.findViewById(R.id.status_bar_start_side_except_heads_up);
-+            mCenteredArea = statusBar.findViewById(R.id.centered_area);
++            mLeftSide = statusBar.findViewById(R.id.status_bar_left_side);
 +        }
 +
 +        public void showLyricView(boolean animate) {
-+            StatusBarVisibilityModel visibilityModel = mLastModifiedVisibility;
-+
-+            boolean disableNotifications = !visibilityModel.getShowNotificationIcons();
-+            boolean hasOngoingCall = visibilityModel.getShowOngoingCallChip();
++            boolean disableNotifications = (mDisabled1 & DISABLE_NOTIFICATION_ICONS) != 0;
++            boolean hasOngoingCall = (mDisabled1 & DISABLE_ONGOING_CALL_CHIP) == 0;
 +            if (!disableNotifications && !hasOngoingCall && isLyricStarted()) {
 +                animateHide(mLeftSide, animate);
-+                animateHide(mCenteredArea, animate);
 +                animateShow(getView(), animate);
 +            }
 +        }
@@ -772,17 +613,35 @@ index 0d580792a9dc..77f1335423c9 100644
 +        public void hideLyricView(boolean animate) {
 +            animateHide(getView(), animate);
 +            animateShow(mLeftSide, animate);
-+            animateShow(mCenteredArea, animate);
++        }
++    }
++
+     @Override
+     public void dump(PrintWriter printWriter, String[] args) {
+         IndentingPrintWriter pw = new IndentingPrintWriter(printWriter, /* singleIndent= */"  ");
+diff --git a/packages/SystemUI/src/com/android/systemui/tuner/TunerService.java b/packages/SystemUI/src/com/android/systemui/tuner/TunerService.java
+index a501e87902a8..64939022c8fe 100644
+--- a/packages/SystemUI/src/com/android/systemui/tuner/TunerService.java
++++ b/packages/SystemUI/src/com/android/systemui/tuner/TunerService.java
+@@ -80,4 +80,12 @@ public abstract class TunerService {
+             return defaultValue;
          }
      }
++
++    public static int parseInteger(String value, int defaultValue) {
++	try {
++	    return value != null ? Integer.parseInt(value) : defaultValue;
++	} catch (NumberFormatException e) {
++	    return defaultValue;
++	}
++    }
  }
 diff --git a/packages/SystemUI/src/com/android/systemui/util/LyricTextView.java b/packages/SystemUI/src/com/android/systemui/util/LyricTextView.java
 new file mode 100644
-index 000000000000..3d1600d57c47
+index 000000000000..25bc8fb1a34e
 --- /dev/null
 +++ b/packages/SystemUI/src/com/android/systemui/util/LyricTextView.java
-@@ -0,0 +1,151 @@
-+
+@@ -0,0 +1,150 @@
 +/*
 + * Copyright (C) 2020 The exTHmUI Open Source Project
 + *               2022 Project Kaleidoscope

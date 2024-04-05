@@ -1,0 +1,25 @@
+From 2b2b88b47a1dcee8bf83cea35a1319f2891d5a7b Mon Sep 17 00:00:00 2001
+From: linlinger <32541118+linlinger@users.noreply.github.com>
+Date: Sat, 6 Apr 2024 02:24:41 +0800
+Subject: [PATCH 2/3] base-Settings-add-Secure.STATUS_BAR_SHOW_LYRIC-to-System
+
+Change-Id: Ic4d9515f6be10ef1a3634002c38c6fc2b0b3be93
+---
+ core/java/android/provider/Settings.java | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/core/java/android/provider/Settings.java b/core/java/android/provider/Settings.java
+index 6f2ee18bd244..c807959da59b 100644
+--- a/core/java/android/provider/Settings.java
++++ b/core/java/android/provider/Settings.java
+@@ -17170,6 +17170,7 @@ public final class Settings {
+             MOVED_TO_SECURE.add(Global.BUGREPORT_IN_POWER_MENU);
+             MOVED_TO_SECURE.add(Global.CUSTOM_BUGREPORT_HANDLER_APP);
+             MOVED_TO_SECURE.add(Global.CUSTOM_BUGREPORT_HANDLER_USER);
++            MOVED_TO_SECURE.add(Secure.STATUS_BAR_SHOW_LYRIC);
+         }
+ 
+         // Certain settings have been moved from global to the per-user system namespace
+-- 
+2.34.1
+
