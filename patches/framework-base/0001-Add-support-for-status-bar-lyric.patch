@@ -74,6 +74,7 @@ index 52fd5d9d12ad..4059012a675d 100644
 @@ -1284,6 +1287,9 @@ public class Instrumentation {
                  .instantiateApplication(cl, className);
          app.attach(context);
++        String packageName = context.getPackageName();
          PixelPropsUtils.setProps(context);
 +        //if (SystemProperties.getBoolean(DISGUISE_PROPS_FOR_MUSIC_APP, false)) {
 +            MeizuPropsUtils.setProps(packageName);
@@ -308,7 +309,6 @@ index 000000000000..6f829370d915
 --- /dev/null
 +++ b/packages/SystemUI/res/values/aosp_styles.xml
 @@ -0,0 +1,8 @@
-+
 +<?xml version="1.0" encoding="utf-8"?>
 +<resources>
 +    <style name="TextApperance.StatusBar.Lyric" parent="@*android:style/TextAppearance.StatusBar">
