@@ -1,12 +1,12 @@
-From 6502545bca3bf9c7d09cb4d40d62dcc15cf81bb4 Mon Sep 17 00:00:00 2001
+From d9d81cb0ed2a11ceaaebe8ca2c3f3f74ecced297 Mon Sep 17 00:00:00 2001
 From: linlinger <32541118+linlinger@users.noreply.github.com>
-Date: Fri, 5 Apr 2024 15:32:32 +0800
+Date: Fri, 5 Apr 2024 15:39:35 +0800
 Subject: [PATCH] Add support for status bar lyric
 
-Change-Id: I1229c50554718d6097c1530f700e1ac7838e65f2
+Change-Id: Ideb4f89f0a4aaae100ae69b01dab246189de504f
 ---
  core/api/current.txt                          |   2 +
- core/java/android/app/Instrumentation.java    |   8 +-
+ core/java/android/app/Instrumentation.java    |   9 +-
  core/java/android/app/Notification.java       |   5 +
  core/java/android/os/Vibrator.java            |   3 +
  core/java/android/provider/Settings.java      |  12 +
@@ -21,7 +21,7 @@ Change-Id: I1229c50554718d6097c1530f700e1ac7838e65f2
  .../statusbar/phone/LyricViewController.java  | 221 ++++++++++++++++++
  .../fragment/CollapsedStatusBarFragment.java  |  56 ++++-
  .../android/systemui/util/LyricTextView.java  | 151 ++++++++++++
- 16 files changed, 631 insertions(+), 6 deletions(-)
+ 16 files changed, 632 insertions(+), 6 deletions(-)
  create mode 100644 core/java/com/android/internal/util/custom/MeizuPropsUtils.java
  create mode 100644 packages/SystemUI/res/layout/status_bar_lyric.xml
  create mode 100644 packages/SystemUI/res/values/aosp_styles.xml
@@ -42,7 +42,7 @@ index 288ab479c0fb..2406d7466998 100644
      field public static final int FOREGROUND_SERVICE_DEFAULT = 0; // 0x0
      field public static final int FOREGROUND_SERVICE_DEFERRED = 2; // 0x2
 diff --git a/core/java/android/app/Instrumentation.java b/core/java/android/app/Instrumentation.java
-index 52fd5d9d12ad..4059012a675d 100644
+index 52fd5d9d12ad..6217355725ba 100644
 --- a/core/java/android/app/Instrumentation.java
 +++ b/core/java/android/app/Instrumentation.java
 @@ -42,6 +42,7 @@ import android.os.Process;
@@ -71,9 +71,11 @@ index 52fd5d9d12ad..4059012a675d 100644
      /**
       * @hide
       */
-@@ -1284,6 +1287,9 @@ public class Instrumentation {
+@@ -1283,7 +1286,11 @@ public class Instrumentation {
+         Application app = getFactory(context.getPackageName())
                  .instantiateApplication(cl, className);
          app.attach(context);
++        String packageName = context.getPackageName();
          PixelPropsUtils.setProps(context);
 +        //if (SystemProperties.getBoolean(DISGUISE_PROPS_FOR_MUSIC_APP, false)) {
 +            MeizuPropsUtils.setProps(packageName);
