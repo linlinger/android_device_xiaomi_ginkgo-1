@@ -29,7 +29,6 @@ def IncrementalOTA_InstallEnd(info):
   return
 
 def OTA_UpdateFirmware(info):
-  # Update firmware here
   info.script.AppendExtra('ui_print("Flashing firmware images");')
   info.script.AppendExtra('package_extract_file("install/firmware-update/abl.elf", "/dev/block/bootdevice/by-name/abl");')
   info.script.AppendExtra('package_extract_file("install/firmware-update/abl.elf", "/dev/block/bootdevice/by-name/ablbak");')
