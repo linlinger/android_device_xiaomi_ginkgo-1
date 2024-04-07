@@ -1,0 +1,114 @@
+From cf37611996580aa071ee115501d2a0e9f0aefab6 Mon Sep 17 00:00:00 2001
+From: linlinger <32541118+linlinger@users.noreply.github.com>
+Date: Sun, 7 Apr 2024 19:55:40 +0800
+Subject: [PATCH 4/4] build fix
+
+Change-Id: I18fc7798b0cff306620ecf961a92ce0cc08441a8
+---
+ res/layout/edit_dialog.xml                           |  2 +-
+ res/layout/preference_custom_seekbar.xml             |  6 +++---
+ .../custom/preference/CustomSeekBarPreference.java   | 12 ++++++------
+ 3 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/res/layout/edit_dialog.xml b/res/layout/edit_dialog.xml
+index 549896e..1e78916 100644
+--- a/res/layout/edit_dialog.xml
++++ b/res/layout/edit_dialog.xml
+@@ -21,7 +21,7 @@
+     android:baselineAligned="false"
+     android:padding="16dp">
+     <EditText
+-        android:id="@id/editText"
++        android:id="@+id/editText"
+         android:layout_width="match_parent"
+         android:layout_height="wrap_content"
+         android:layout_marginStart="6dp"
+diff --git a/res/layout/preference_custom_seekbar.xml b/res/layout/preference_custom_seekbar.xml
+index 8e9cc8f..cac0042 100644
+--- a/res/layout/preference_custom_seekbar.xml
++++ b/res/layout/preference_custom_seekbar.xml
+@@ -26,7 +26,7 @@
+     android:orientation="horizontal">
+ 
+     <LinearLayout
+-        android:id="@id/text_container"
++        android:id="@+id/text_container"
+         android:layout_width="wrap_content"
+         android:layout_height="wrap_content"
+         android:minWidth="44dp"
+@@ -35,7 +35,7 @@
+         android:paddingTop="4dp"
+         android:paddingBottom="4dp">
+         <TextView
+-            android:id="@id/seekBarPrefValue"
++            android:id="@+id/seekBarPrefValue"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:textAlignment="center"
+@@ -81,7 +81,7 @@
+             android:layout_height="wrap_content"
+             android:layout_marginTop="6dp">
+ 
+-            <LinearLayout android:id="@id/seekBarPrefBarContainer"
++            <LinearLayout android:id="@+id/seekBarPrefBarContainer"
+                 android:layout_gravity="center_vertical"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content" />
+diff --git a/src/com/android/settings/custom/preference/CustomSeekBarPreference.java b/src/com/android/settings/custom/preference/CustomSeekBarPreference.java
+index 7fce885..88c6d41 100644
+--- a/src/com/android/settings/custom/preference/CustomSeekBarPreference.java
++++ b/src/com/android/settings/custom/preference/CustomSeekBarPreference.java
+@@ -151,14 +151,14 @@ public class CustomSeekBarPreference extends Preference implements SeekBar.OnSee
+                         ViewGroup.LayoutParams.WRAP_CONTENT);
+             }
+         } catch (Exception ex) {
+-            Log.e(TAG, "Error binding view: "  ex.toString());
++            Log.e(TAG, "Error binding view: " + ex.toString());
+         }
+         mTextContainer = (View) view.findViewById(R.id.text_container);
+         mStatusText = (TextView) view.findViewById(R.id.seekBarPrefValue);
+         if (mCurrentValue == mDefaultValue) {
+             mStatusText.setText(mDefaultText);
+         } else {
+-            mStatusText.setText(String.valueOf(mCurrentValue)  mUnits);
++            mStatusText.setText(String.valueOf(mCurrentValue) + mUnits);
+         }
+ 
+         if (mAllowEdit) {
+@@ -233,7 +233,7 @@ public class CustomSeekBarPreference extends Preference implements SeekBar.OnSee
+ 
+     @Override
+     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+-        int newValue = progress  mMin;
++        int newValue = progress + mMin;
+         if (newValue > mMax)
+             newValue = mMax;
+         else if (newValue < mMin)
+@@ -252,7 +252,7 @@ public class CustomSeekBarPreference extends Preference implements SeekBar.OnSee
+             if (newValue == mDefaultValue) {
+                 mStatusText.setText(mDefaultText);
+             } else {
+-                mStatusText.setText(String.valueOf(newValue)  mUnits);
++                mStatusText.setText(String.valueOf(newValue) + mUnits);
+             }
+         }
+         persistInt(newValue);
+@@ -288,7 +288,7 @@ public class CustomSeekBarPreference extends Preference implements SeekBar.OnSee
+             try {
+                 temp = (Integer) defaultValue;
+             } catch (Exception ex) {
+-                Log.e(TAG, "Invalid default value: "  defaultValue.toString());
++                Log.e(TAG, "Invalid default value: " + defaultValue.toString());
+             }
+             persistInt(temp);
+             mCurrentValue = temp;
+@@ -314,4 +314,4 @@ public class CustomSeekBarPreference extends Preference implements SeekBar.OnSee
+         }
+         super.setEnabled(enabled);
+     }
+-}
+\ No newline at end of file
++}
+-- 
+2.34.1
+

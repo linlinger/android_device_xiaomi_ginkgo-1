@@ -1,0 +1,54 @@
+From 021fd42766c555aeb0532e6b8263436079891dc9 Mon Sep 17 00:00:00 2001
+From: linlinger <32541118+linlinger@users.noreply.github.com>
+Date: Sun, 7 Apr 2024 17:54:19 +0800
+Subject: [PATCH 4/4] build fix
+
+Change-Id: I862652e8606a83d9846c16f2273a9c14bea25b98
+---
+ res/values/custom_strings.xml |  2 +-
+ res/xml/display_settings.xml  | 10 +++++-----
+ 2 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/res/values/custom_strings.xml b/res/values/custom_strings.xml
+index 5f25a4fa81..d11c42dac1 100644
+--- a/res/values/custom_strings.xml
++++ b/res/values/custom_strings.xml
+@@ -145,7 +145,7 @@
+     <string name="fast_charging_title">Fast charging</string>
+     <string name="fast_charging_summary">Disable to reduce the heat produced by the device while charging or to extend the lifespan of the battery</string>
+ 
+-   <!-- StatusBar Lyric -->
++    <!-- StatusBar Lyric -->
+     <string name="status_bar_lyric_title">Status bar lyric</string>
+     <string name="status_bar_lyric_summary">Show lyric in status bar (need app support)</string>
+     <string name="status_bar_show_lyric_title">Enable status bar lyric</string>
+diff --git a/res/xml/display_settings.xml b/res/xml/display_settings.xml
+index 90840a98da..78e1861610 100644
+--- a/res/xml/display_settings.xml
++++ b/res/xml/display_settings.xml
+@@ -100,17 +100,17 @@
+             android:fragment="com.android.settings.display.ColorModePreferenceFragment"
+             settings:controller="com.android.settings.display.ColorModePreferenceController"
+             settings:keywords="@string/keywords_color_mode"/>
++	 
++    </PreferenceCategory>
++
++    <PreferenceCategory
++        android:title="@string/category_name_display_controls">
+ 
+         <Preference
+ 	        android:key="status_bar_lyric_settings"
+ 	        android:fragment="com.android.settings.fragments.StatusbarLyricSettings"
+ 	        android:title="@string/status_bar_lyric_title"
+ 	        android:summary="@string/status_bar_lyric_summary"/>
+-	 
+-    </PreferenceCategory>
+-
+-    <PreferenceCategory
+-        android:title="@string/category_name_display_controls">
+ 
+         <!--
+             Standard auto-rotation preference that will be shown when device state based
+-- 
+2.34.1
+
