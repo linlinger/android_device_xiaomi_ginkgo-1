@@ -1,0 +1,69 @@
+From e5f7eec564d99379dede85d6b79d57219ecd3d83 Mon Sep 17 00:00:00 2001
+From: linlinger <32541118+linlinger@users.noreply.github.com>
+Date: Sun, 7 Apr 2024 11:47:27 +0800
+Subject: [PATCH 2/2] Settings-Reset-props-for-status-bar-lyric
+
+Change-Id: I26d7c0b602182946581342eaff3a7df7c2b48120
+---
+ res/values-zh-rCN/custom-strings.xml  |  3 +++
+ res/values/custom_strings.xml         | 11 +++++++----
+ res/xml/status_bar_lyric_settings.xml | 10 ++++++++++
+ 3 files changed, 20 insertions(+), 4 deletions(-)
+
+diff --git a/res/values-zh-rCN/custom-strings.xml b/res/values-zh-rCN/custom-strings.xml
+index 48b67f4ef4..ccf963752a 100644
+--- a/res/values-zh-rCN/custom-strings.xml
++++ b/res/values-zh-rCN/custom-strings.xml
+@@ -19,4 +19,7 @@
+     <string name="status_bar_lyric_summary">状态栏歌词（需要应用支持）</string>
+     <string name="status_bar_show_lyric_title">启用状态栏歌词</string>
+     <string name="status_bar_show_lyric_summary">感谢Shelling和AmeChan的贡献~</string>
++    <string name="status_bar_lyric_options_title">选项</string>
++    <string name="disguise_props_for_music_app_title">对音乐应用伪装设备</string>
++    <string name="disguise_props_for_music_app_summary">在一些音乐应用中伪装设备以支持状态栏歌词。更改此开关后，您必须重新启动相关应用才能使更改生效。</string>
+ </resources>
+\ No newline at end of file
+diff --git a/res/values/custom_strings.xml b/res/values/custom_strings.xml
+index 4be84cbdd1..2191b44d86 100644
+--- a/res/values/custom_strings.xml
++++ b/res/values/custom_strings.xml
+@@ -146,9 +146,12 @@
+     <string name="fast_charging_summary">Disable to reduce the heat produced by the device while charging or to extend the lifespan of the battery</string>
+ 
+    <!-- StatusBar Lyric -->
+-     <string name="status_bar_lyric_title">Status bar lyric</string>
+-     <string name="status_bar_lyric_summary">Show lyric in status bar (need app support)</string>
+-     <string name="status_bar_show_lyric_title">Enable status bar lyric</string>
+-     <string name="status_bar_show_lyric_summary">Show lyric in status bar. Thanks to @cjybyjk and @AmeChanRain! (from @exTHmUI)</string>
++    <string name="status_bar_lyric_title">Status bar lyric</string>
++    <string name="status_bar_lyric_summary">Show lyric in status bar (need app support)</string>
++    <string name="status_bar_show_lyric_title">Enable status bar lyric</string>
++    <string name="status_bar_show_lyric_summary">Show lyric in status bar. Thanks to @cjybyjk and @AmeChanRain! (from @exTHmUI)</string>
++    <string name="status_bar_lyric_options_title">Options</string>
++    <string name="disguise_props_for_music_app_title">Disguise device for music apps</string>
++    <string name="disguise_props_for_music_app_summary">Disguise device in some music applications for support status bar lyric. After changing this toggle, you have to restart applications for the change to take effect.</string>
+ 
+ </resources>
+diff --git a/res/xml/status_bar_lyric_settings.xml b/res/xml/status_bar_lyric_settings.xml
+index 6aa0155a4f..69706181ec 100644
+--- a/res/xml/status_bar_lyric_settings.xml
++++ b/res/xml/status_bar_lyric_settings.xml
+@@ -24,4 +24,14 @@
+         android:title="@string/status_bar_show_lyric_title"
+         android:summary="@string/status_bar_show_lyric_summary"
+         android:defaultValue="false"/>
++    <PreferenceCategory
++        android:title="@string/status_bar_lyric_options_title">
++
++        <com.android.settings.custom.preference.SystemPropertySwitchPreference
++            android:key="persist.sys.disguise_props_for_music_app"
++            android:title="@string/disguise_props_for_music_app_title"
++            android:summary="@string/disguise_props_for_music_app_summary"
++            android:dependency="status_bar_show_lyric"
++            android:defaultValue="false"/>
++    </PreferenceCategory>
+ </PreferenceScreen>
+\ No newline at end of file
+-- 
+2.34.1
+

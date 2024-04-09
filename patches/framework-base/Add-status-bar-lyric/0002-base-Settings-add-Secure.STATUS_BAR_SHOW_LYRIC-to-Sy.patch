@@ -1,9 +1,9 @@
-From a3be8842aa3ddf92deb267900be2f7f64433259b Mon Sep 17 00:00:00 2001
+From d1c126fef8a148e01a3b877f6376123d6f4d4601 Mon Sep 17 00:00:00 2001
 From: linlinger <32541118+linlinger@users.noreply.github.com>
-Date: Sun, 7 Apr 2024 20:22:54 +0800
+Date: Sun, 7 Apr 2024 21:39:41 +0800
 Subject: [PATCH 2/3] base-Settings-add-Secure.STATUS_BAR_SHOW_LYRIC-to-System
 
-Change-Id: Ia8eb536aa166f22de53d5cbac7ae83216026df82
+Change-Id: Iad25236ed51ba6b2a20dc0ca6ab98c69457e08fe
 ---
  core/java/android/provider/Settings.java | 1 +
  1 file changed, 1 insertion(+)

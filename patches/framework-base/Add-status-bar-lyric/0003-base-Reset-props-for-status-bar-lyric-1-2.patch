@@ -1,9 +1,9 @@
-From dc859353367b1d019b5f2605beacb7658e108824 Mon Sep 17 00:00:00 2001
+From 685e610db2637bdb43aa3a3d6416c63b19aa2379 Mon Sep 17 00:00:00 2001
 From: linlinger <32541118+linlinger@users.noreply.github.com>
-Date: Sun, 7 Apr 2024 20:23:53 +0800
+Date: Sun, 7 Apr 2024 21:40:19 +0800
 Subject: [PATCH 3/3] base-Reset-props-for-status-bar-lyric-1-2
 
-Change-Id: I80ba8b7225f943e66f3586dafa87605b060e381a
+Change-Id: I3e44fa00c989884f4a47bbfed951be9231bf134b
 ---
  core/java/android/app/Instrumentation.java    |  8 +-
  .../internal/util/custom/MeizuPropsUtils.java | 85 +++++++++++++++++++

@@ -1,9 +1,17 @@
-From c749d6adb747b85c5048518e68a821cb8038d153 Mon Sep 17 00:00:00 2001
+From 1ba55d89ed4b11cae93a5536ee18ab553f325da8 Mon Sep 17 00:00:00 2001
 From: linlinger <32541118+linlinger@users.noreply.github.com>
-Date: Sun, 7 Apr 2024 20:21:34 +0800
+Date: Sun, 7 Apr 2024 21:37:55 +0800
 Subject: [PATCH 1/3] SQUASHED-base-Add-status-bar-lyric-for-Android-14
 
 Change-Id: Ic54018fb4943140de671e9930ce099b9c084ec71
+
+base-Reset-props-for-status-bar-lyric-1-2
+
+Change-Id: I80ba8b7225f943e66f3586dafa87605b060e381a
+
+base-Settings-add-Secure.STATUS_BAR_SHOW_LYRIC-to-System
+
+Change-Id: Ia8eb536aa166f22de53d5cbac7ae83216026df82
 ---
  core/api/current.txt                          |   2 +
  core/java/android/app/Notification.java       |   4 +
@@ -16,10 +24,10 @@ Change-Id: Ic54018fb4943140de671e9930ce099b9c084ec71
  .../collection/NotifCollection.java           |   4 +
  .../phone/HeadsUpAppearanceController.java    |  12 +
  .../statusbar/phone/LyricViewController.java  | 220 ++++++++++++++++++
- .../fragment/CollapsedStatusBarFragment.java  |  48 +++-
+ .../fragment/CollapsedStatusBarFragment.java  |  53 ++++-
  .../android/systemui/tuner/TunerService.java  |   8 +
  .../android/systemui/util/LyricTextView.java  | 150 ++++++++++++
- 14 files changed, 548 insertions(+), 2 deletions(-)
+ 14 files changed, 552 insertions(+), 3 deletions(-)
  create mode 100644 packages/SystemUI/res/layout/status_bar_lyric.xml
  create mode 100644 packages/SystemUI/res/values/custom_dimens.xml
  create mode 100644 packages/SystemUI/res/values/custom_styles.xml
@@ -496,7 +504,7 @@ index 000000000000..10a8a71b4f42
 +}
 \ No newline at end of file
 diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java b/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
-index 0d580792a9dc..2b4161c8a7e1 100644
+index 0d580792a9dc..0d3fba3abe57 100644
 --- a/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
 +++ b/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
 @@ -17,6 +17,7 @@ package com.android.systemui.statusbar.phone.fragment;
@@ -580,8 +588,8 @@ index 0d580792a9dc..2b4161c8a7e1 100644
          if (disableNotifications || hasOngoingCall) {
              hideNotificationIconArea(animate);
 +            if (mLyricController != null) {
-+                mLyricController.hideLyricView(animate);
-+            }            
++                mLyricController.hideLyricView(animate); 
++            }           
          } else {
              showNotificationIconArea(animate);
 +            if (mLyricController != null) {
@@ -590,29 +598,25 @@ index 0d580792a9dc..2b4161c8a7e1 100644
          }
  
          // Show the ongoing call chip only if there is an ongoing call *and* notification icons
-@@ -798,6 +822,7 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
-                     updateStatusBarLocation(left, right);
-                 }
-             };
-+    }
- 
-     @Override
-     public void dump(PrintWriter printWriter, String[] args) {
-@@ -817,4 +842,25 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+@@ -817,4 +841,29 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
              pw.decreaseIndent();
          }
      }
-+    private class LyricController extends LyricViewController {
-+    private View mLeftSide;
+-}
++    
++        private class LyricController extends LyricViewController {
++        private View mLeftSide;
 +
 +        public LyricController(Context context, View statusBar) {
 +            super(context, statusBar);
-+            mLeftSide = statusBar.findViewById(R.id.status_bar_left_side);
++            mLeftSide = statusBar.findViewById(R.id.status_bar_start_side_except_heads_up);
 +        }
 +
 +        public void showLyricView(boolean animate) {
-+            boolean disableNotifications = (mDisabled1 & DISABLE_NOTIFICATION_ICONS) != 0;
-+            boolean hasOngoingCall = (mDisabled1 & DISABLE_ONGOING_CALL_CHIP) == 0;
++            StatusBarVisibilityModel visibilityModel = mLastModifiedVisibility;
++
++            boolean disableNotifications = !visibilityModel.getShowNotificationIcons();
++            boolean hasOngoingCall = visibilityModel.getShowOngoingCallChip();
 +            if (!disableNotifications && !hasOngoingCall && isLyricStarted()) {
 +                animateHide(mLeftSide, animate);
 +                animateShow(getView(), animate);
@@ -623,7 +627,9 @@ index 0d580792a9dc..2b4161c8a7e1 100644
 +            animateHide(getView(), animate);
 +            animateShow(mLeftSide, animate);
 +        }
- }
++    }
++}
+\ No newline at end of file
 diff --git a/packages/SystemUI/src/com/android/systemui/tuner/TunerService.java b/packages/SystemUI/src/com/android/systemui/tuner/TunerService.java
 index a501e87902a8..64939022c8fe 100644
 --- a/packages/SystemUI/src/com/android/systemui/tuner/TunerService.java

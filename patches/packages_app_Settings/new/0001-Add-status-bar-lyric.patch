@@ -1,0 +1,168 @@
+From 502c06f6c4ad5472db197d7775ae44858d66e008 Mon Sep 17 00:00:00 2001
+From: linlinger <32541118+linlinger@users.noreply.github.com>
+Date: Sun, 7 Apr 2024 20:37:37 +0800
+Subject: [PATCH 1/2] Add-status-bar-lyric
+
+Change-Id: Id06956f7db50b5cf1bacad0c83d68c919ee9d11a
+---
+ res/values-zh-rCN/custom-strings.xml          | 22 ++++++++++
+ res/values/custom_strings.xml                 |  6 +++
+ res/xml/display_settings.xml                  |  7 ++++
+ res/xml/status_bar_lyric_settings.xml         | 27 +++++++++++++
+ .../fragments/StatusbarLyricSettings.java     | 40 +++++++++++++++++++
+ 5 files changed, 102 insertions(+)
+ create mode 100644 res/values-zh-rCN/custom-strings.xml
+ create mode 100644 res/xml/status_bar_lyric_settings.xml
+ create mode 100644 src/com/android/settings/fragments/StatusbarLyricSettings.java
+
+diff --git a/res/values-zh-rCN/custom-strings.xml b/res/values-zh-rCN/custom-strings.xml
+new file mode 100644
+index 0000000000..48b67f4ef4
+--- /dev/null
++++ b/res/values-zh-rCN/custom-strings.xml
+@@ -0,0 +1,22 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!--  Copyright (C) 2007 The Android Open Source Project
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++ -->
++
++<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
++    <string name="status_bar_lyric_title">状态栏歌词</string>
++    <string name="status_bar_lyric_summary">状态栏歌词（需要应用支持）</string>
++    <string name="status_bar_show_lyric_title">启用状态栏歌词</string>
++    <string name="status_bar_show_lyric_summary">感谢Shelling和AmeChan的贡献~</string>
++</resources>
+\ No newline at end of file
+diff --git a/res/values/custom_strings.xml b/res/values/custom_strings.xml
+index 1f46454316..4be84cbdd1 100644
+--- a/res/values/custom_strings.xml
++++ b/res/values/custom_strings.xml
+@@ -145,4 +145,10 @@
+     <string name="fast_charging_title">Fast charging</string>
+     <string name="fast_charging_summary">Disable to reduce the heat produced by the device while charging or to extend the lifespan of the battery</string>
+ 
++   <!-- StatusBar Lyric -->
++     <string name="status_bar_lyric_title">Status bar lyric</string>
++     <string name="status_bar_lyric_summary">Show lyric in status bar (need app support)</string>
++     <string name="status_bar_show_lyric_title">Enable status bar lyric</string>
++     <string name="status_bar_show_lyric_summary">Show lyric in status bar. Thanks to @cjybyjk and @AmeChanRain! (from @exTHmUI)</string>
++
+ </resources>
+diff --git a/res/xml/display_settings.xml b/res/xml/display_settings.xml
+index 84617b4a2b..78e1861610 100644
+--- a/res/xml/display_settings.xml
++++ b/res/xml/display_settings.xml
+@@ -100,11 +100,18 @@
+             android:fragment="com.android.settings.display.ColorModePreferenceFragment"
+             settings:controller="com.android.settings.display.ColorModePreferenceController"
+             settings:keywords="@string/keywords_color_mode"/>
++	 
+     </PreferenceCategory>
+ 
+     <PreferenceCategory
+         android:title="@string/category_name_display_controls">
+ 
++        <Preference
++	        android:key="status_bar_lyric_settings"
++	        android:fragment="com.android.settings.fragments.StatusbarLyricSettings"
++	        android:title="@string/status_bar_lyric_title"
++	        android:summary="@string/status_bar_lyric_summary"/>
++
+         <!--
+             Standard auto-rotation preference that will be shown when device state based
+             auto-rotation settings are NOT available.
+diff --git a/res/xml/status_bar_lyric_settings.xml b/res/xml/status_bar_lyric_settings.xml
+new file mode 100644
+index 0000000000..6aa0155a4f
+--- /dev/null
++++ b/res/xml/status_bar_lyric_settings.xml
+@@ -0,0 +1,27 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++     Copyright (C) 2022 Project Kaleidoscope
++     
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++     
++          http://www.apache.org/licenses/LICENSE-2.0
++          
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++<PreferenceScreen
++    android:title="@string/status_bar_lyric_title"
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:settings="http://schemas.android.com/apk/res/com.android.settings">
++
++    <com.android.settings.custom.preference.SecureSettingSwitchPreference
++        android:key="status_bar_show_lyric"
++        android:title="@string/status_bar_show_lyric_title"
++        android:summary="@string/status_bar_show_lyric_summary"
++        android:defaultValue="false"/>
++</PreferenceScreen>
+\ No newline at end of file
+diff --git a/src/com/android/settings/fragments/StatusbarLyricSettings.java b/src/com/android/settings/fragments/StatusbarLyricSettings.java
+new file mode 100644
+index 0000000000..7c4bfb8cae
+--- /dev/null
++++ b/src/com/android/settings/fragments/StatusbarLyricSettings.java
+@@ -0,0 +1,40 @@
++/*
++ * Copyright (C) 2022 Project Kaleidoscope
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.settings.fragments;
++
++import android.os.Bundle;
++
++import androidx.preference.Preference;
++
++import com.android.internal.logging.nano.MetricsProto;
++
++import com.android.settings.R;
++import com.android.settings.SettingsPreferenceFragment;
++
++public class StatusbarLyricSettings extends SettingsPreferenceFragment {
++
++    @Override
++    public void onCreate(Bundle icicle) {
++        super.onCreate(icicle);
++        addPreferencesFromResource(R.xml.status_bar_lyric_settings);
++    }
++
++    @Override
++    public int getMetricsCategory() {
++        return MetricsProto.MetricsEvent.CUSTOM_SETTINGS;
++    }
++}
+\ No newline at end of file
+-- 
+2.34.1
+
