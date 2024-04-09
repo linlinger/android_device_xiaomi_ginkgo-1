@@ -1,0 +1,162 @@
+From d43452ac175c76ec83dd65135aad8b95a3f20cb0 Mon Sep 17 00:00:00 2001
+From: linlinger <32541118+linlinger@users.noreply.github.com>
+Date: Sat, 6 Apr 2024 15:40:53 +0800
+Subject: [PATCH] Build fix
+
+Change-Id: I9c467ed42e748c47c0b83de8d7d8c02863d3e7a5
+---
+ core/java/android/provider/Settings.java      |  2 +-
+ .../SystemUI/res/layout/status_bar_lyric.xml  |  8 +--
+ .../collection/NotifCollection.java           |  2 +-
+ .../fragment/CollapsedStatusBarFragment.java  | 55 ++++++++++---------
+ 4 files changed, 35 insertions(+), 32 deletions(-)
+
+diff --git a/core/java/android/provider/Settings.java b/core/java/android/provider/Settings.java
+index c807959da59b..7b04422bc02a 100644
+--- a/core/java/android/provider/Settings.java
++++ b/core/java/android/provider/Settings.java
+@@ -12069,7 +12069,7 @@ public final class Settings {
+                 String provider, boolean enabled) {
+         }
+         
+-  .      /**
++       /**
+          * Show lyric in status bar when playing music
+          * <ul>
+          *    <li> 0 = disabled </li>
+diff --git a/packages/SystemUI/res/layout/status_bar_lyric.xml b/packages/SystemUI/res/layout/status_bar_lyric.xml
+index ce2002783b84..125d30d94712 100644
+--- a/packages/SystemUI/res/layout/status_bar_lyric.xml
++++ b/packages/SystemUI/res/layout/status_bar_lyric.xml
+@@ -17,7 +17,7 @@
+   -->
+ <LinearLayout
+     xmlns:android="http://schemas.android.com/apk/res/android"
+-    android:id="@id/lyric_container"
++    android:id="@+id/lyric_container"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+     android:gravity="center_vertical"
+@@ -25,7 +25,7 @@
+     android:orientation="horizontal"
+     android:paddingEnd="@dimen/lyric_padding_end">
+ 
+-    <ImageSwitcher android:id="@id/lyric_icon"
++    <ImageSwitcher android:id="@+id/lyric_icon"
+         android:layout_width="@dimen/status_bar_icon_size"
+         android:layout_height="@dimen/status_bar_icon_size"
+         android:layout_marginEnd="@dimen/lyric_icon_margin_end">
+@@ -38,7 +38,7 @@
+             android:layout_height="@dimen/status_bar_icon_size"
+             android:scaleType="centerInside" />
+     </ImageSwitcher>
+-    <TextSwitcher android:id="@id/lyric_text"
++    <TextSwitcher android:id="@+id/lyric_text"
+         android:layout_width="match_parent"
+         android:layout_height="wrap_content">
+         <com.android.systemui.util.LyricTextView
+@@ -52,4 +52,4 @@
+             android:layout_height="wrap_content"
+             android:maxLines="1" />
+     </TextSwitcher>
+-</LinearLayout>
+\ No newline at end of file
++</LinearLayout>
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/notification/collection/NotifCollection.java b/packages/SystemUI/src/com/android/systemui/statusbar/notification/collection/NotifCollection.java
+index d2d07ae3bf87..1f702af2bd47 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/notification/collection/NotifCollection.java
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/notification/collection/NotifCollection.java
+@@ -537,7 +537,7 @@ public class NotifCollection implements Dumpable, PipelineDumpable {
+             mLogger.logNotifUpdated(entry);
+             mEventQueue.add(new EntryUpdatedEvent(entry, true /* fromSystem */));
+             // update ticker only, LyricController will handle it
+-            if ((notification.getNotification().flags & Notification.FLAG_ONLY_UPDATE_TICKER) != 0) {
++            if ((entry.getSbn().getNotification().flags & Notification.FLAG_ONLY_UPDATE_TICKER) != 0) {
+                 return;
+             }
+         }
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java b/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
+index 94ae5424c28e..0d3fba3abe57 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/CollapsedStatusBarFragment.java
+@@ -545,11 +545,13 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+         if (disableNotifications || hasOngoingCall) {
+             hideNotificationIconArea(animate);
+             if (mLyricController != null) {
+-                mLyricController.hideLyricView(animate);            
++                mLyricController.hideLyricView(animate); 
++            }           
+         } else {
+             showNotificationIconArea(animate);
+             if (mLyricController != null) {
+                 mLyricController.showLyricView(animate);
++            }
+         }
+ 
+         // Show the ongoing call chip only if there is an ongoing call *and* notification icons
+@@ -821,30 +823,6 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+                 }
+             };
+ 
+-
+-    private class LyricController extends LyricViewController {
+-        private View mLeftSide;
+-
+-        public LyricController(Context context, View statusBar) {
+-            super(context, statusBar);
+-            mLeftSide = statusBar.findViewById(R.id.status_bar_left_side);
+-        }
+-
+-        public void showLyricView(boolean animate) {
+-            boolean disableNotifications = (mDisabled1 & DISABLE_NOTIFICATION_ICONS) != 0;
+-            boolean hasOngoingCall = (mDisabled1 & DISABLE_ONGOING_CALL_CHIP) == 0;
+-            if (!disableNotifications && !hasOngoingCall && isLyricStarted()) {
+-                animateHide(mLeftSide, animate);
+-                animateShow(getView(), animate);
+-            }
+-        }
+-
+-        public void hideLyricView(boolean animate) {
+-            animateHide(getView(), animate);
+-            animateShow(mLeftSide, animate);
+-        }
+-    }
+-
+     @Override
+     public void dump(PrintWriter printWriter, String[] args) {
+         IndentingPrintWriter pw = new IndentingPrintWriter(printWriter, /* singleIndent= */"  ");
+@@ -863,4 +841,29 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
+             pw.decreaseIndent();
+         }
+     }
+-}
++    
++        private class LyricController extends LyricViewController {
++        private View mLeftSide;
++
++        public LyricController(Context context, View statusBar) {
++            super(context, statusBar);
++            mLeftSide = statusBar.findViewById(R.id.status_bar_start_side_except_heads_up);
++        }
++
++        public void showLyricView(boolean animate) {
++            StatusBarVisibilityModel visibilityModel = mLastModifiedVisibility;
++
++            boolean disableNotifications = !visibilityModel.getShowNotificationIcons();
++            boolean hasOngoingCall = visibilityModel.getShowOngoingCallChip();
++            if (!disableNotifications && !hasOngoingCall && isLyricStarted()) {
++                animateHide(mLeftSide, animate);
++                animateShow(getView(), animate);
++            }
++        }
++
++        public void hideLyricView(boolean animate) {
++            animateHide(getView(), animate);
++            animateShow(mLeftSide, animate);
++        }
++    }
++}
+\ No newline at end of file
+-- 
+2.34.1
+

@@ -1,0 +1,33 @@
+From a8f525ef4beff18be1038a221b13512220c5c3d4 Mon Sep 17 00:00:00 2001
+From: linlinger <32541118+linlinger@users.noreply.github.com>
+Date: Sun, 7 Apr 2024 12:11:59 +0800
+Subject: [PATCH 3/4] Update custom_strings.xml
+
+Build fix
+
+Change-Id: If2bc6eb4798c2063d9426a4179f8734a1ab0f832
+---
+ res/values/custom_strings.xml | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/res/values/custom_strings.xml b/res/values/custom_strings.xml
+index 4303a4d83a..5f25a4fa81 100644
+--- a/res/values/custom_strings.xml
++++ b/res/values/custom_strings.xml
+@@ -146,9 +146,10 @@
+     <string name="fast_charging_summary">Disable to reduce the heat produced by the device while charging or to extend the lifespan of the battery</string>
+ 
+    <!-- StatusBar Lyric -->
+-     <string name="status_bar_lyric_summary">Show lyric in status bar (need app support)</string>
+-     <string name="status_bar_show_lyric_title">Enable status bar lyric</string>
+-     <string name="status_bar_show_lyric_summary">Show lyric in status bar. Thanks to @cjybyjk and @AmeChanRain! (from @exTHmUI)</string>
++    <string name="status_bar_lyric_title">Status bar lyric</string>
++    <string name="status_bar_lyric_summary">Show lyric in status bar (need app support)</string>
++    <string name="status_bar_show_lyric_title">Enable status bar lyric</string>
++    <string name="status_bar_show_lyric_summary">Show lyric in status bar. Thanks to @cjybyjk and @AmeChanRain! (from @exTHmUI)</string>
+     <string name="status_bar_lyric_options_title">Options</string>
+     <string name="disguise_props_for_music_app_title">Disguise device for music apps</string>
+     <string name="disguise_props_for_music_app_summary">Disguise device in some music applications for support status bar lyric. After changing this toggle, you have to restart applications for the change to take effect.</string>
+-- 
+2.34.1
+
