@@ -453,8 +453,10 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.usb.host.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.usb.host.xml
 
 # Vibrator
-PRODUCT_PACKAGES += \
-    vendor.qti.hardware.vibrator.service
+# PRODUCT_PACKAGES += \
+#     vendor.qti.hardware.vibrator.service
+
+$(call inherit-product, hardware/xiaomi/aidl/vibrator/vibrator-vendor-product.mk)
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/input/excluded-input-devices.xml:$(TARGET_COPY_OUT_VENDOR)/etc/excluded-input-devices.xml
