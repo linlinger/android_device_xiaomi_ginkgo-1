@@ -66,6 +66,9 @@ function blob_fixup() {
         vendor/lib/hw/camera.trinket.so)
             "${PATCHELF}" --remove-needed "android.hidl.base@1.0.so" "${2}"
             ;;
+		vendor/lib64/libvendor.goodix.hardware.interfaces.biometrics.fingerprint@2.1.so | vendor/lib64/libgoodixhwfingerprint.so)
+			grep -q "libhidlbase-v32.so" "${2}" || "${PATCHELF_0_17_2}" --replace-needed "libhidlbase.so" "libhidlbase-v32.so" "${2}"
+        ;;
     esac
 }
 
