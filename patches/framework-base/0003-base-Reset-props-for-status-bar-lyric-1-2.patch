@@ -58,7 +58,7 @@ index 000000000000..dba98a42129e
 +++ b/core/java/com/android/internal/util/custom/MeizuPropsUtils.java
 @@ -0,0 +1,85 @@
 +/*
-+ * Copyright (C) 2020 The Pixel Experience Project
++ * Copyright (C) 2020 The Pixys Project
 + *               2020 The exTHmUI Open Source Project
 + *               2022 Project Kaleidoscope
 + *

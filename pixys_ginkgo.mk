@@ -1,7 +1,7 @@
 #
 # Copyright (C) 2020 ArrowOS
 # Copyright (C) 2023 Project-Elixir
-# Copyright (C) 2024 Pixel Experience
+# Copyright (C) 2024 Pixys
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ TARGET_INCLUDE_PIXEL_CHARGER := true
 $(call inherit-product, vendor/aosp/config/common_full_phone.mk)
 
 # Device identifier
-PRODUCT_NAME := aosp_ginkgo
+PRODUCT_NAME := pixys_ginkgo
 PRODUCT_DEVICE := ginkgo
 PRODUCT_BRAND := Xiaomi
 PRODUCT_MODEL := Redmi Note 8/8T
