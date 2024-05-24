@@ -1,9 +1,9 @@
 #
 # Copyright (C) 2020 ArrowOS
-# Copyright (C) 2022-2024 Evolution-X
+# Copyright (C) 2022-2024 Derpfest
 #
 # SPDX-License-Identifier: Apache-2.0
 #
 
 PRODUCT_MAKEFILES := \
-    $(LOCAL_DIR)/evolution_ginkgo.mk
+    $(LOCAL_DIR)/derp_ginkgo.mk

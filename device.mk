@@ -1,7 +1,7 @@
 #
 # Copyright (C) 2018-2019 The LineageOS Project
 # Copyright (C) 2020 Paranoid Android
-# Copyright (C) 2022-2024 Evolution-X
+# Copyright (C) 2022-2024 Derpfest
 #
 # SPDX-License-Identifier: Apache-2.0
 #
