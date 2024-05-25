@@ -927,3 +927,15 @@ service vendor.hwcomposer-2-4 /vendor/bin/hw/android.hardware.graphics.composer@
     onrestart restart surfaceflinger
     writepid /dev/cpuset/system-background/tasks
     socket pps stream 0660 system system
+
+# Add HID interface
+# HID gadget device nodes
+service hidg0 /system/bin/sh -c "mknod --mode=666 /dev/hidg0 c 240 0"
+    class core
+    user root
+    group root
+
+service hidg1 /system/bin/sh -c "mknod --mode=666 /dev/hidg1 c 240 1"
+    class core
+    user root
+    group root
