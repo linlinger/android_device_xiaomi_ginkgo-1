@@ -943,3 +943,7 @@ service hidg1 /system/bin/sh -c "mknod --mode=666 /dev/hidg1 c 240 1"
     class core
     user root
     group root
+    
+on boot
+    # Disable kernel logging for better performance
+    write /proc/sys/kernel/printk "0 0 0 0"
