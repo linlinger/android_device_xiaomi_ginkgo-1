@@ -1,0 +1,50 @@
+From deddd7c0a9b90f6c7101974843d9e0e481d274fa Mon Sep 17 00:00:00 2001
+From: Adithya R <gh0strider.2k18.reborn@gmail.com>
+Date: Tue, 26 Sep 2023 20:28:45 +0530
+Subject: [PATCH 5/5] Camera: Allow setting fallback physical ID for logical
+ camera [2/2]
+
+On Redmi Note 8 (ginkgo):
+
+ * miui camera uses logical id 61 as depth sensor on portrait mode
+   but oss libcam maps it to physical id 2 which is wrong, our physical
+   id of depth sensor is 20 so we must hack it this way
+
+Set appropriate system property, for example:
+persist.sys.camera.fallback_id_2=20
+
+Change-Id: I0c42813d8529b0d769ee8abd0307da97fbfecf5d
+Signed-off-by: Edwiin Kusuma Jaya <kutemeikito0905@gmail.com>
+---
+ .../android/hardware/camera2/CameraManager.java   | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/core/java/android/hardware/camera2/CameraManager.java b/core/java/android/hardware/camera2/CameraManager.java
+index c8b5569c3fb3..385a45fc1c65 100644
+--- a/core/java/android/hardware/camera2/CameraManager.java
++++ b/core/java/android/hardware/camera2/CameraManager.java
+@@ -717,7 +717,20 @@ public final class CameraManager {
+                 new HashMap<String, CameraCharacteristics>();
+         Set<String> physicalCameraIds = chars.getPhysicalCameraIds();
+         for (String physicalCameraId : physicalCameraIds) {
+-            CameraCharacteristics physicalChars = getCameraCharacteristics(physicalCameraId);
++            CameraCharacteristics physicalChars;
++            try {
++                physicalChars = getCameraCharacteristics(physicalCameraId);
++            } catch (Exception e) {
++                final String fallbackId = SystemProperties.get(
++                        "persist.sys.camera.fallback_id_" + physicalCameraId);
++                if (fallbackId.isEmpty()) {
++                    throw e;
++                }
++                Log.w(TAG, "Could not retrieve camera " + physicalCameraId + " characteristics", e);
++                Log.i(TAG, "Trying fallback camera " + fallbackId);
++                // if this also fails, exception will be thrown
++                physicalChars = getCameraCharacteristics(fallbackId);
++            }
+             physicalIdsToChars.put(physicalCameraId, physicalChars);
+         }
+         return physicalIdsToChars;
+-- 
+2.46.0
+

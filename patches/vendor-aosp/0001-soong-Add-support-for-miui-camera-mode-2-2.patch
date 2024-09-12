@@ -1,0 +1,63 @@
+From 50875c8f804b6c5aba922cfb0d65d320c6dae6fb Mon Sep 17 00:00:00 2001
+From: Adithya R <gh0strider.2k18.reborn@gmail.com>
+Date: Sun, 19 May 2024 14:02:13 +0000
+Subject: [PATCH] soong: Add support for miui camera mode [2/2]
+
+Change-Id: I0c912a1c7056bb204a24bd5f0a08308cae71f3f3
+Signed-off-by: Edwiin Kusuma Jaya <kutemeikito0905@gmail.com>
+---
+ build/soong/Android.bp     | 17 +++++++++++++++++
+ config/BoardConfigSoong.mk |  2 ++
+ 2 files changed, 19 insertions(+)
+
+diff --git a/build/soong/Android.bp b/build/soong/Android.bp
+index 65d6756c..3152f3d6 100644
+--- a/build/soong/Android.bp
++++ b/build/soong/Android.bp
+@@ -305,6 +305,23 @@ egl_display_array {
+     },
+ }
+ 
++soong_config_module_type {
++    name: "uses_miui_camera",
++    module_type: "cc_defaults",
++    config_namespace: "customGlobalVars",
++    bool_variables: ["uses_miui_camera"],
++    properties: ["cppflags"]
++}
++
++uses_miui_camera {
++    name: "uses_miui_camera_defaults",
++    soong_config_variables: {
++        uses_miui_camera: {
++            cppflags: ["-DUSES_MIUI_CAMERA"],
++        },
++    },
++}
++
+ soong_config_module_type {
+     name: "health_charging_control",
+     module_type: "cc_defaults",
+diff --git a/config/BoardConfigSoong.mk b/config/BoardConfigSoong.mk
+index 89c36c2c..370d95a5 100644
+--- a/config/BoardConfigSoong.mk
++++ b/config/BoardConfigSoong.mk
+@@ -35,6 +35,7 @@ SOONG_CONFIG_customGlobalVars += \
+     gralloc_handle_has_custom_content_md_reserved_size \
+     gralloc_handle_has_reserved_size \
+     gralloc_handle_has_ubwcp_format \
++    uses_miui_camera \
+     target_health_charging_control_charging_path \
+     target_health_charging_control_charging_enabled \
+     target_health_charging_control_charging_disabled \
+@@ -80,6 +81,7 @@ SOONG_CONFIG_customGlobalVars_gralloc_handle_has_reserved_size := $(TARGET_GRALL
+ SOONG_CONFIG_customGlobalVars_gralloc_handle_has_ubwcp_format := $(TARGET_GRALLOC_HANDLE_HAS_UBWCP_FORMAT)
+ SOONG_CONFIG_customGlobalVars_uses_egl_display_array := $(TARGET_USES_EGL_DISPLAY_ARRAY)
+ SOONG_CONFIG_customGlobalVars_uses_oplus_camera := $(TARGET_USES_OPLUS_CAMERA)
++SOONG_CONFIG_customGlobalVars_uses_miui_camera := $(TARGET_USES_MIUI_CAMERA)
+ SOONG_CONFIG_customGlobalVars_uses_nothing_camera := $(TARGET_USES_NOTHING_CAMERA)
+ SOONG_CONFIG_customNvidiaVars_uses_nvidia_enhancements := $(NV_ANDROID_FRAMEWORK_ENHANCEMENTS)
+ SOONG_CONFIG_customQcomVars_qti_vibrator_use_effect_stream := $(TARGET_QTI_VIBRATOR_USE_EFFECT_STREAM)
+-- 
+2.46.0
+

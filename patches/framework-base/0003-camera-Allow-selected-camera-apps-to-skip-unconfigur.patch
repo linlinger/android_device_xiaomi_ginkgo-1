@@ -1,0 +1,57 @@
+From 7a9162719d489efa915b4b9ab5869d3884c963a5 Mon Sep 17 00:00:00 2001
+From: LuK1337 <priv.luk@gmail.com>
+Date: Thu, 29 Apr 2021 11:37:45 +0200
+Subject: [PATCH 3/5] camera: Allow selected camera apps to skip unconfigure
+
+Apparently OnePlus camera app relies on that...
+
+Change-Id: I144de61e89bfb8a8d0bcebd78b43a0b2bda81b82
+(cherry picked from commit 0446926dc712955f965f09afed1339595f74a815)
+Signed-off-by: Joey Huab <joey@evolution-x.org>
+Signed-off-by: Edwiin Kusuma Jaya <kutemeikito0905@gmail.com>
+---
+ .../camera2/impl/CameraCaptureSessionImpl.java     | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/core/java/android/hardware/camera2/impl/CameraCaptureSessionImpl.java b/core/java/android/hardware/camera2/impl/CameraCaptureSessionImpl.java
+index b3b24cb78d38..1c6ca081e677 100644
+--- a/core/java/android/hardware/camera2/impl/CameraCaptureSessionImpl.java
++++ b/core/java/android/hardware/camera2/impl/CameraCaptureSessionImpl.java
+@@ -15,6 +15,7 @@
+  */
+ package android.hardware.camera2.impl;
+ 
++import android.app.ActivityThread;
+ import android.hardware.camera2.CameraAccessException;
+ import android.hardware.camera2.CameraCaptureSession;
+ import android.hardware.camera2.CameraDevice;
+@@ -28,6 +29,7 @@ import android.hardware.camera2.utils.TaskSingleDrainer;
+ import android.os.Binder;
+ import android.os.Handler;
+ import android.os.SystemClock;
++import android.os.SystemProperties;
+ import android.util.Log;
+ import android.view.Surface;
+ 
+@@ -131,6 +133,18 @@ public class CameraCaptureSessionImpl extends CameraCaptureSession
+             Log.e(TAG, mIdString + "Failed to create capture session; configuration failed");
+             mConfigureSuccess = false;
+         }
++
++        setSkipUnconfigure();
++    }
++
++    private void setSkipUnconfigure() {
++        String packageName = ActivityThread.currentOpPackageName();
++        List<String> packageList = Arrays.asList(SystemProperties.get(
++                "vendor.camera.skip_unconfigure.packagelist", packageName).split(","));
++
++        if (packageList.contains(packageName)) {
++            mSkipUnconfigure = true;
++        }
+     }
+ 
+     @Override
+-- 
+2.46.0
+
