@@ -174,6 +174,10 @@ TARGET_COPY_OUT_PRODUCT := product
 TARGET_COPY_OUT_SYSTEM_EXT := system_ext
 TARGET_COPY_OUT_VENDOR := vendor
 
+# OTA package
+TARGET_OTA_ALLOW_NON_AB := true
+AB_OTA_UPDATER := false
+
 # Properties
 TARGET_SYSTEM_PROP += $(DEVICE_PATH)/configs/props/system.prop
 TARGET_PRODUCT_PROP += $(DEVICE_PATH)/configs/props/product.prop
